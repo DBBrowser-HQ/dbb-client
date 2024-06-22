@@ -23,6 +23,7 @@ public class TreeMenu extends QTreeView {
 
     private QStandardItemModel dbModel;
     private final QStringListModel emptyModel;
+    private final QStringListModel emptyModelOnline;
     public final Signal0 signal0 = new Signal0();
 
     public TreeMenu() {
@@ -31,14 +32,16 @@ public class TreeMenu extends QTreeView {
         List<String> emptyTreeMessage = new ArrayList<>();
         emptyTreeMessage.add("Current connection isn't active");
         emptyModel.setStringList(emptyTreeMessage);
+        emptyModelOnline = new QStringListModel();
+        List<String> emptyTreeMessageOnline = new ArrayList<>();
+        emptyTreeMessageOnline.add("No datasources found in this organization");
+        emptyTreeMessageOnline.add("You can create a new datasource in \nSettings -> Management -> \nright click on organization -> Create datasource");
+        emptyModelOnline.setStringList(emptyTreeMessageOnline);
         dbModel = new QStandardItemModel();
         //this.doubleClicked.connect(this, "treeClicked()");
-        //this.setModel(model);
 
         this.collapsed.connect(this, "collapse1(QModelIndex)");
         this.expanded.connect(this, "expanded1(QModelIndex)");
-
-        //connect(this, "signal0", this, "helloWorld()");
     }
 
     public void setTreeModel(List<String> stringList, String conName) throws IOException {
@@ -88,6 +91,10 @@ public class TreeMenu extends QTreeView {
         this.setModel(emptyModel);
     }
 
+    public void setEmptyModelOnline() {
+        this.setModel(emptyModelOnline);
+    }
+
     public void newCurrentConnectionName(String conName) {
         Objects.requireNonNull(dbModel.invisibleRootItem()).setData(conName);
     }
@@ -97,7 +104,6 @@ public class TreeMenu extends QTreeView {
     }
 
     void treeClicked(QModelIndex index) {
-
         ConnectionController.getContentInTable(Objects.requireNonNull(dbModel.invisibleRootItem()).data().toString(), dbModel.data(index).toString());
     }
 
