@@ -4,12 +4,14 @@ public class Column {
     private String name;
     private String dataType;
     private boolean notNull;
+    private boolean autoInc;
     private String defaultDefinition;
 
-    public Column(String name, String dataType, boolean notNull, String defaultDefinition) {
+    public Column(String name, String dataType, boolean notNull, boolean autoInc, String defaultDefinition) {
         this.name = name;
         this.dataType = dataType;
         this.notNull = notNull;
+        this.autoInc = autoInc;
         this.defaultDefinition = defaultDefinition;
     }
 
@@ -25,7 +27,22 @@ public class Column {
         return notNull;
     }
 
+    public boolean isAutoInc() {
+        return autoInc;
+    }
+
     public String getDefaultDefinition() {
         return defaultDefinition;
+    }
+
+    @Override
+    public String toString() {
+        return "Column{" +
+                "name='" + name + '\'' +
+                ", dataType='" + dataType + '\'' +
+                ", notNull=" + notNull +
+                ", autoInc=" + autoInc +
+                ", defaultDefinition='" + defaultDefinition + '\'' +
+                '}';
     }
 }

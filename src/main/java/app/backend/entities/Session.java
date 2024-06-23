@@ -15,6 +15,7 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -382,9 +383,19 @@ public class Session {
         try {
             List<Index> indexList = new ArrayList<>();
             Statement statement = getStatement();
-            ResultSet resultSet = statement.executeQuery(
-                    "SELECT name FROM sqlite_master " +
-                            "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')");
+            String query;
+            switch (connectionInfo.getConnectionType()) {
+                case POSTGRESQL -> {
+                    query = "SELECT table_name as name FROM information_schema.tables WHERE table_schema='public' AND table_type <> 'VIEW'";
+                }
+                case SQLITE -> {
+                    query = "SELECT name FROM sqlite_master " +
+                            "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')";
+                }
+                default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+            }
+
+            ResultSet resultSet = statement.executeQuery(query);
             while (resultSet.next()) {
                 indexList.addAll(getIndexes(resultSet.getString("name")));
             }
@@ -410,16 +421,47 @@ public class Session {
                 boolean unique = !resultSet.getBoolean("NON_UNIQUE");
 
                 // Возможно убрать в отдельную функцию получение колонок
-                ArrayList<String> columnLinkedList = new ArrayList<>();
-                ResultSet columnsNamesResultSet = statement.executeQuery("PRAGMA index_info('" + name + "')");
+                LinkedList<Column> columnLinkedList = new LinkedList<>();
+                String queryGetColumnsForIndex;
+                switch (connectionInfo.getConnectionType()) {
+                    case POSTGRESQL -> {
+                        queryGetColumnsForIndex = "SELECT\n" +
+                                "    a.attname AS name\n" +
+                                "FROM\n" +
+                                "    pg_class t,\n" +
+                                "    pg_class i,\n" +
+                                "    pg_index ix,\n" +
+                                "    pg_attribute a,\n" +
+                                "    pg_namespace n\n" +
+                                "WHERE\n" +
+                                "    t.oid = ix.indrelid\n" +
+                                "  AND i.oid = ix.indexrelid\n" +
+                                "  AND a.attrelid = t.oid\n" +
+                                "  AND a.attnum = ANY(ix.indkey)\n" +
+                                "  AND t.relnamespace = n.oid\n" +
+                                "  AND n.nspname NOT IN ('pg_catalog', 'information_schema')\n" +
+                                "  AND i.relname = '" + name + "'\n" +
+                                "ORDER BY\n" +
+                                "    t.relname,\n" +
+                                "    i.relname,\n" +
+                                "    a.attnum;";
+                    }
+                    case SQLITE -> {
+                        queryGetColumnsForIndex = "PRAGMA index_info('" + name + "')";
+                    }
+                    default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+                }
+
+                ResultSet columnsNamesResultSet = statement.executeQuery(queryGetColumnsForIndex);
                 while (columnsNamesResultSet.next()) {
                     String columnName = columnsNamesResultSet.getString("name");
                     ResultSet columnsResultSet = meta.getColumns(null, null, tableName, columnName);
+                    columnsResultSet.next();
                     String dataType = columnsResultSet.getString("TYPE_NAME");
                     boolean notNull = columnsResultSet.getString("IS_NULLABLE").equals("YES");
                     boolean autoInc = columnsResultSet.getString("IS_AUTOINCREMENT").equals("YES");
                     String defaultDefinition = columnsResultSet.getString("COLUMN_DEF");
-                    columnLinkedList.add(columnName);
+                    columnLinkedList.addLast(new Column(columnName, dataType, notNull, autoInc, defaultDefinition));
                 }
 
                 indexList.add(new Index(name, unique, columnLinkedList));
@@ -441,7 +483,7 @@ public class Session {
                 boolean notNull = resultSet.getString("IS_NULLABLE").equals("YES");
                 boolean autoInc = resultSet.getString("IS_AUTOINCREMENT").equals("YES");
                 String defaultDefinition = resultSet.getString("COLUMN_DEF");
-                columnList.add(new Column(name, dataType, notNull, defaultDefinition));
+                columnList.add(new Column(name, dataType, notNull, autoInc, defaultDefinition));
             }
             return columnList;
         } catch (SQLException e) {
@@ -470,13 +512,13 @@ public class Session {
 
                 if (currentKeySeq == 1) {
                     previousKeySeq = 1;
-                    foreignKeyList.add(new ForeignKey(name, new ArrayList<>(List.of(childColumn)), parentTable, new ArrayList<>(List.of(parentColumn)), ""));
+                    foreignKeyList.add(new ForeignKey(name, childColumn, parentTable, parentColumn));
                 } else {
                     previousKeySeq = currentKeySeq;
                     ForeignKey fk = foreignKeyList.stream().filter(x -> x.getName().equals(name)).findFirst().orElse(null);
 
                     if (fk == null) {
-                        foreignKeyList.add(new ForeignKey(name, new ArrayList<>(List.of(childColumn)), parentTable, new ArrayList<>(List.of(parentColumn)), ""));
+                        foreignKeyList.add(new ForeignKey(name, childColumn, parentTable, parentColumn));
                     } else {
                         fk.addChildColumn(childColumn);
                         fk.addParentColumn(parentColumn);
@@ -509,12 +551,12 @@ public class Session {
 
                 if (currentKeySeq == 1) {
                     previousKeySeq = 1;
-                    keyList.add(new Key(name, new ArrayList<>(List.of(column))));
+                    keyList.add(new Key(name, column));
                 } else {
                     previousKeySeq = currentKeySeq;
                     Key key = keyList.stream().filter(x -> x.getName().equals(name)).findFirst().orElse(null);
                     if (key == null) {
-                        keyList.add(new Key(name, new ArrayList<>(List.of(column))));
+                        keyList.add(new Key(name, column));
                     } else {
                         key.addColumn(column);
                     }
@@ -567,8 +609,8 @@ public class Session {
 
         for (Index index : table.getIndexes()) {
             sql.append("CONSTRAINT ").append(index.getName()).append(" UNIQUE (");
-            for (String column : index.getColumnLinkedList()) {
-                sql.append(column).append(", ");
+            for (Column column : index.getColumnLinkedList()) {
+                sql.append(column.getName()).append(", ");
             }
             sql.setLength(sql.length() - 2);
             sql.append("),\n");

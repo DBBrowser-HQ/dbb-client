@@ -131,24 +131,12 @@ public class Connection implements Serializable {
         return session.executeQuery(sql, DEFAULT_ROWS_TO_GET);
     }
 
-//    public void createTable(String tableName,
-//                            String definition,
-//                            Map<String, String> columns,
-//                            List<String> primaryKeys,
-//                            List<String> notNullColumns,
-//                            List<String> autoIncColumns){
-//        session.createTable(name, definition, columns, primaryKeys, notNullColumns);
-//        Table table = new Table(name, definition);
-//
-//        schema.getTables().add(table);
-//    }
-
     public void newTable(String tableName, String definition) {
         schema.getTables().add(new Table(tableName, definition));
     }
 
     public void addColumn(String tableName, String columnName, String dataType, boolean notNull, String defaultDefinition) {
-        Column column = new Column(columnName, dataType, notNull, defaultDefinition);
+        Column column = new Column(columnName, dataType, notNull, false, defaultDefinition);
         for(Table table: schema.getTables()) {
             if(table.getName().equals(tableName)) {
                 table.getColumns().add(column);
@@ -166,19 +154,26 @@ public class Connection implements Serializable {
     }
 
     public void addForeignKey(String tableName, String name, ArrayList<String> childColumns, String parentTable, ArrayList<String> parentColumns, String onDeleteAction){
-        ForeignKey foreignKey = new ForeignKey(name, childColumns, parentTable, parentColumns, onDeleteAction);
+
         for(Table table: schema.getTables()) {
             if(table.getName().equals(tableName)) {
-                table.getForeignKeys().add(foreignKey);
+                table.getForeignKeys().add(new ForeignKey(name, childColumns, parentTable, parentColumns, onDeleteAction));
             }
         }
     }
 
-    public void addIndex(String tableName, String name, boolean unique, ArrayList<String> columnLinkedList){
-        Index index = new Index(name, unique, columnLinkedList);
+    public void addIndex(String tableName, String name, boolean unique, ArrayList<String> columnList){
         for(Table table: schema.getTables()) {
             if(table.getName().equals(tableName)) {
-                table.getIndexes().add(index);
+                LinkedList<Column> columnLinkedList = new LinkedList<>();
+                for(String col: columnList) {
+                    for(Column column: table.getColumns()) {
+                        if(column.getName().equals(col)) {
+                            columnLinkedList.add(column);
+                        }
+                    }
+                }
+                table.getIndexes().add(new Index(name, unique, columnLinkedList));
             }
         }
     }
@@ -219,9 +214,9 @@ public class Connection implements Serializable {
         Table table = schema.getTable(tableName);
         this.setColumnsFor(tableName);
         List<Column> columns = table.getColumns().stream().filter(c -> columnsNames.contains(c.getName())).toList();
-        ArrayList<String> columnLinkedList = new ArrayList<>();
+        LinkedList<Column> columnLinkedList = new LinkedList<>();
         for (String name : columnsNames) {
-            columnLinkedList.add(columns.stream().map(Column::getName).filter(cName -> cName.equals(name)).findFirst().orElse(null));
+            columnLinkedList.addLast(columns.stream().filter(c -> c.getName().equals(name)).findFirst().orElse(null));
         }
         Index newIndex = new Index(indexName, isUnique, columnLinkedList);
         newIndex.setStatusDDL(1);
