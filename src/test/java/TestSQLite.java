@@ -1,5 +1,3 @@
-package app.backend;
-
 import app.backend.entities.*;
 
 import java.util.ArrayList;
