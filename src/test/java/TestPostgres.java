@@ -1,5 +1,3 @@
-package app.backend;
-
 import app.backend.entities.Connection;
 import app.backend.entities.ConnectionInfo;
 import app.backend.entities.ConnectionStorage;
