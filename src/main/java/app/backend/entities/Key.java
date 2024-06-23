@@ -7,12 +7,12 @@ public class Key {
     private String name;
     private List<String> columns;
 
-    public Key(String name, String columns) {
+    public Key(String name, String column) {
         this.name = name;
-        this.columns = new ArrayList<>(List.of(columns));
+        this.columns = new ArrayList<>(List.of(column));
     }
 
-    public Key(String name, ArrayList<String> columns) {
+    public Key(String name, List<String> columns) {
         this.name = name;
         this.columns = columns;
     }
@@ -27,5 +27,13 @@ public class Key {
 
     public List<String> getColumns() {
         return columns;
+    }
+
+    @Override
+    public String toString() {
+        return "Key{" +
+                "name='" + name + '\'' +
+                ", columns=" + columns +
+                '}';
     }
 }

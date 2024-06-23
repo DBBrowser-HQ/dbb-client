@@ -1,6 +1,5 @@
 package app.backend.entities;
 
-import javax.xml.crypto.Data;
 import java.io.Serial;
 import java.io.Serializable;
 import java.sql.DatabaseMetaData;
@@ -22,7 +21,9 @@ public class Connection implements Serializable {
     private transient Session session;
 
     // в зависимости от этой переменной будем выводить сразу содержимое схемы или список баз данных
-    private boolean supportsDatabaseAndSchema;
+    // UPD: решил, что в зависимости от этой переменной будем определять PostgresSQL или нет
+    // UPD2: сейчас не нужно, можно просто по connectionType
+    private boolean supportsSchema;
 
     public Connection(String name, ConnectionInfo connectionInfo) {
         this.name = name;
@@ -36,12 +37,8 @@ public class Connection implements Serializable {
         }
         this.session = new Session(connectionInfo);
         this.isConnected = session.isConnected();
-        this.supportsDatabaseAndSchema = session.isSupportsDatabaseAndSchema();
-        if (supportsDatabaseAndSchema) {
-            setDatabaseList();
-        } else {
-            setSchema();
-        }
+        this.supportsSchema = session.isSupportsSchema();
+        setSchema();
     }
 
     public void disconnect() {
@@ -53,12 +50,8 @@ public class Connection implements Serializable {
     public void reconnect() {
         session.reconnect(connectionInfo);
         this.isConnected = session.isConnected();
-        this.supportsDatabaseAndSchema = session.isSupportsDatabaseAndSchema();
-        if (supportsDatabaseAndSchema) {
-            setDatabaseList();
-        } else {
-            setSchema();
-        }
+        this.supportsSchema = session.isSupportsSchema();
+        setSchema();
     }
 
     public ConnectionInfo getConnectionInfo() {
@@ -69,16 +62,12 @@ public class Connection implements Serializable {
         this.connectionInfo = connectionInfo;
         this.session.reconnect(connectionInfo);
         this.isConnected = session.isConnected();
-        this.supportsDatabaseAndSchema = session.isSupportsDatabaseAndSchema();
-        if (supportsDatabaseAndSchema) {
-            setDatabaseList();
-        } else {
-            setSchema();
-        }
+        this.supportsSchema = session.isSupportsSchema();
+        setSchema();
     }
 
     public boolean isConnected() {
-        return isConnected;
+        return session.isConnected();
     }
 
     public String getName() {
@@ -89,16 +78,19 @@ public class Connection implements Serializable {
         this.name = name;
     }
 
+    @Deprecated
     public List<String> getDatabaseList() {
         return databaseList.stream().map(Database::getName).toList();
     }
 
+    @Deprecated
     public Database getDatabase(String name) {
         return databaseList.stream()
             .filter(element -> element.getName().equals(name))
             .findFirst().orElse(null);
     }
 
+    @Deprecated
     public void setDatabaseList() {
         this.databaseList = session.getDatabases();
     }
@@ -108,10 +100,11 @@ public class Connection implements Serializable {
     }
 
     public void setSchema() {
-        this.schema = new Schema("public");
-    }
-
-    public void setSchema(String name) {
+        String name = "default";
+        switch (connectionInfo.getConnectionType()) {
+            case SQLITE -> name = "schema";
+            case POSTGRESQL -> name = "public";
+        }
         this.schema = new Schema(name);
     }
 
@@ -131,6 +124,7 @@ public class Connection implements Serializable {
         return session.executeQuery(sql, DEFAULT_ROWS_TO_GET);
     }
 
+    // TODO: Передавать сюда уже заполненный объект таблицы
     public void newTable(String tableName, String definition) {
         schema.getTables().add(new Table(tableName, definition));
     }
@@ -193,50 +187,55 @@ public class Connection implements Serializable {
 
     // Для отката создания и удаления
     private void rollbackIndexes() {
-        schema.setIndexList(schema.getIndexes().stream().filter(index -> {
+        List<Index> list = schema.getIndexes().stream().filter(index -> {
             if (index.getStatusDDL() == 1) {
                 return false;
             } else if (index.getStatusDDL() == -1) {
                 index.setStatusDDL(0);
             }
             return true;
-        }).toList());
+        }).toList();
+        schema.setIndexList(new ArrayList<>(list));
 
         this.getSchema().getTables().forEach(table -> {
             if (table.getIndexes() != null) {
-                table.setIndexList(table.getIndexes().stream().filter(index -> {
+                List<Index> indexesOfTable = table.getIndexes().stream().filter(index -> {
                     if (index.getStatusDDL() == 1) {
                         return false;
                     } else if (index.getStatusDDL() == -1) {
                         index.setStatusDDL(0);
                     }
                     return true;
-                }).toList());
+                }).toList();
+                table.setIndexList(new ArrayList<>(indexesOfTable));
             }
         });
     }
 
     // Для подтверждения сохранения и удаления
     private void commitIndexes() {
-        schema.setIndexList(schema.getIndexes().stream().filter(index -> {
+        List<Index> list = schema.getIndexes().stream().filter(index -> {
             if (index.getStatusDDL() == -1) {
                 return false;
             } else if (index.getStatusDDL() == 1) {
                 index.setStatusDDL(0);
             }
             return true;
-        }).toList());
+        }).toList();
+
+        schema.setIndexList(new ArrayList<>(list));
 
         this.getSchema().getTables().forEach(table -> {
             if (table.getIndexes() != null) {
-                table.setIndexList(table.getIndexes().stream().filter(index -> {
+                List<Index> indexesInTable = table.getIndexes().stream().filter(index -> {
                     if (index.getStatusDDL() == -1) {
                         return false;
                     } else if (index.getStatusDDL() == 1) {
                         index.setStatusDDL(0);
                     }
                     return true;
-                }).toList());
+                }).toList();
+                table.setIndexList(new ArrayList<>(indexesInTable));
             }
         });
     }
@@ -245,6 +244,7 @@ public class Connection implements Serializable {
         session.createView(viewName, sql);
         View view = new View(viewName, sql);
         view.setStatusDDL(1);
+        System.out.println(schema.getViews().getClass().getName());
         schema.getViews().add(view);
     }
 
@@ -257,25 +257,27 @@ public class Connection implements Serializable {
     }
 
     private void rollbackViews() {
-        schema.setViewList(schema.getViews().stream().filter(view -> {
+        List<View> views = schema.getViews().stream().filter(view -> {
             if (view.getStatusDDL() == 1) {
                 return false;
             } else if (view.getStatusDDL() == -1) {
                 view.setStatusDDL(0);
             }
             return true;
-        }).toList());
+        }).toList();
+        schema.setViewList(new ArrayList<>(views));
     }
 
     private void commitViews() {
-        schema.setViewList(schema.getViews().stream().filter(view -> {
+        List<View> views = schema.getViews().stream().filter(view -> {
             if (view.getStatusDDL() == -1) {
                 return false;
             } else if (view.getStatusDDL() == 1) {
                 view.setStatusDDL(0);
             }
             return true;
-        }).toList());
+        }).toList();
+        schema.setViewList(new ArrayList<>(views));
     }
 
     public void saveChanges() {
@@ -291,6 +293,7 @@ public class Connection implements Serializable {
         return new ArrayList<>(List.of(cancel.getTableName(), cancel.getIndex().toString()));
     }
 
+    @Deprecated
     public void setSchemasFor(String databaseName) {
         List<Schema> schemaList = session.getSchemas(databaseName);
         getDatabase(databaseName).setSchemaList(schemaList);
@@ -303,7 +306,7 @@ public class Connection implements Serializable {
     }
 
     public void setTables() {
-        List<Table> tableList = session.getTables(schema);
+        List<Table> tableList = session.getTables();
         schema.setTableList(tableList);
     }
 
@@ -348,17 +351,15 @@ public class Connection implements Serializable {
         table.setKeyList(keyList);
     }
 
+    public boolean isSupportsSchema() {
+        return supportsSchema;
+    }
 
     @Deprecated
     public Session getSession() {
         return session;
     }
 
-
-
-    public boolean isSupportsDatabaseAndSchema() {
-        return supportsDatabaseAndSchema;
-    }
 
     @Override
     public String toString() {
@@ -369,7 +370,7 @@ public class Connection implements Serializable {
                 ", databaseList=" + databaseList +
                 ", schema=" + schema +
                 ", session=" + session +
-                ", supportsDatabaseAndSchema=" + supportsDatabaseAndSchema +
+                ", supportsDatabaseAndSchema=" + supportsSchema +
                 '}';
     }
 }

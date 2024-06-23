@@ -78,16 +78,12 @@ public class Table {
         return keyList.stream().map(Key::getName).toList();
     }
 
-    public List<Key> getKeys() {
-        return keyList;
-    }
-
-    public List<ForeignKey> getForeignKeys() {
-        return foreignKeyList;
-    }
-
     public Key getKey(String keyName) {
         return keyList.stream().filter(x -> x.getName().equals(keyName)).findFirst().orElse(null);
+    }
+
+    public List<Key> getKeys() {
+        return keyList;
     }
 
     public void setForeignKeyList(List<ForeignKey> foreignKeyList) {
@@ -98,8 +94,8 @@ public class Table {
         return foreignKeyList.stream().map(ForeignKey::getName).toList();
     }
 
-    public ForeignKey getForeignKey(String foreignKeyName) {
-        return foreignKeyList.stream().filter(x -> x.getName().equals(foreignKeyName)).findFirst().orElse(null);
+    public List<ForeignKey> getForeignKeys() {
+        return foreignKeyList;
     }
 
     public void addColumn(String columnName, String dataType, boolean notNull, String defaultDefinition) {

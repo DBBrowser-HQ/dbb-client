@@ -34,11 +34,7 @@ public class ConnectionInfo implements Serializable {
                 }
             }
             case POSTGRESQL -> {
-                propertiesNames.addAll(dbSpecificProps.getPostgreSQLProps());
-                if (info.containsKey("host") && info.containsKey("dbname")) {
-                    info.put("url", ConnectionInfo.postgresSQLDataToUrl(
-                            info.get("host"), info.get("port"), info.get("dbname")));
-                }
+                propertiesNames.addAll(dbSpecificProps.getPostgresSQLProps());
             }
             default -> throw new InvalidParameterException("Invalid DB type");
         }
@@ -52,14 +48,6 @@ public class ConnectionInfo implements Serializable {
 
     public static String filePathToUrlSQLite(String path) {
         return "jdbc:sqlite:" + path;
-    }
-
-    public static String postgresSQLDataToUrl(String host, String port, String dbName) {
-        if (port != null) {
-            return "jdbc:postgresql://" + host + ":" + port + "/" + dbName;
-        } else {
-            return "jdbc:postgresql://" + host + "/" + dbName;
-        }
     }
 
     public ConnectionType getConnectionType() {

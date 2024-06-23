@@ -1,7 +1,3 @@
-package app.backend;
-
-
-
 import app.backend.entities.Connection;
 import app.backend.entities.ConnectionInfo;
 import app.backend.entities.ConnectionStorage;
@@ -15,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Test {
+public class TestSQLite {
     public static void main(String[] args) {
         ConnectionStorage connectionStorage = new ConnectionStorage();
 

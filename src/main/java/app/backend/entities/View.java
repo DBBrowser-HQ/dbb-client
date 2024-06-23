@@ -35,4 +35,14 @@ public class View {
     public void setStatusDDL(int statusDDL) {
         this.statusDDL = statusDDL;
     }
+
+    @Override
+    public String toString() {
+        return "View{" +
+                "name='" + name + '\'' +
+                ", definition='" + definition + '\'' +
+                ", dataTable=" + dataTable +
+                ", statusDDL=" + statusDDL +
+                '}';
+    }
 }
