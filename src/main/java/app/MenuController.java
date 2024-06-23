@@ -1,11 +1,15 @@
 package app;
 
+import app.api.ApiCalls;
+import app.api.UserDataRepository;
+import app.api.data.responses.Datasource;
 import app.backend.controllers.ConnectionController;
 import app.backend.controllers.StorageController;
 import app.backend.entities.ConnectionInfo;
 import app.backend.entities.DataTable;
 import app.backend.utility.Saver;
 import app.widgets.dialogs.*;
+import app.widgets.dialogs.settings.SettingsDialog;
 import io.qt.core.QObject;
 import io.qt.gui.QCursor;
 import io.qt.widgets.QCheckBox;
@@ -17,10 +21,18 @@ import java.util.List;
 
 public class MenuController extends QObject {
 
-    private final MainWindow root;
+    public final MainWindow root;
+    private final Signal1<List<Datasource>> signalOk = new Signal1<>();
+    private final Signal1<String> signalErr = new Signal1<>();
 
     public MenuController(MainWindow mainWindow) {
         root = mainWindow;
+        signalOk.connect(this, "datasourcesLoaded(List)");
+        signalErr.connect(this, "error(String)");
+    }
+
+    public void loadDatasources() {
+        ApiCalls.getDatasources(signalOk, signalErr);
     }
 
     void run_clicked() throws SQLException {
@@ -100,15 +112,14 @@ public class MenuController extends QObject {
     }
 
     void connectToDBButtonClicked() {
-        /*LocalStorage.closeConnection();
-        new StartDialog(root.windowIcon());
-        root.close();*/
+
         new FileDialog(this);
-        //new FileDialog(root);
+
     }
 
     void fileChosen(String fileName) {
         if (fileName.endsWith(".db")) {
+            StorageController.connectionStorage.removeConnection(fileName);
             ConnectionController.addConnection(ConnectionInfo.ConnectionType.SQLITE, fileName);
         }
         else {
@@ -117,10 +128,8 @@ public class MenuController extends QObject {
     }
 
     void showSchema(String conName) throws IOException {
-        //root.treeViewMenu.setTreeModel(LocalStorage.showSchema());
         root.treeViewMenu.setTreeModel(ConnectionController.getSchema(conName), conName);
         System.out.println(ConnectionController.getSchema(conName));
-        //System.out.println(root.dbName.toPlainText());
     }
 
     void clearWorkArea() {
@@ -137,18 +146,18 @@ public class MenuController extends QObject {
         clearWorkArea();
     }
 
-    void reconnectToDBClicked() throws SQLException, InterruptedException {
+    void reconnectToDBClicked() {
         ConnectionController.reconnectConnection(root.connectionStorageView.getCurrentConnection());
-        //LocalStorage.reconnectToDB();
+
     }
 
     void showDBInfo() {
-        //List<String> list = LocalStorage.getDBName();
+
         String list = ConnectionController.getDBInfo(root.dbName.toPlainText());
         root.dbInfo.setText(list);
     }
 
-    void newConnectionName(String name) throws IOException {
+    void newConnectionName(String name) {
         root.dbName.setText(name);
         root.tableViewMainTab.clear();
         root.connectionStorageView.addConnection(name);
@@ -229,6 +238,39 @@ public class MenuController extends QObject {
     public void changeLoadRowsNumber(int number) {
         root.tableViewMainTab.changeRowsToLoadNumber(number);
         root.tableView.changeRowsToLoadNumber(number);
+    }
+
+    void settingsClicked() {
+        //this.setDisabled(true);
+        new SettingsDialog(root.windowIcon(), () -> {loadDatasources(); updateRoot(true); root.setWindowTitle(UserDataRepository.currentCompany.second);}, this);
+    }
+
+    public void updateRoot(boolean full) {
+        root.update(full);
+    }
+
+    void datasourcesLoaded(List<Datasource> datasources) {
+        if (datasources.isEmpty()) {
+            root.treeViewMenu.setEmptyModelOnline();
+            root.connectionStorageView.setText(" ");
+            root.connectionStorageView.clearDS();
+        }
+        else {
+            root.treeViewMenu.setEmptyModel();
+            root.connectionStorageView.clearDS();
+            for (Datasource ds : datasources) {
+                root.connectionStorageView.addDatasource(ds);
+            }
+        }
+    }
+
+    public void close() {
+        ApiCalls.logout();
+        root.close();
+    }
+
+    void error(String err) {
+        new ErrorDialog(err);
     }
 
 }

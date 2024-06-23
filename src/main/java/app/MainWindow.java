@@ -1,7 +1,9 @@
 package app;
 
+import app.api.UserDataRepository;
 import app.backend.controllers.ConnectionController;
 import app.widgets.LoadMoreRowsButton;
+import app.widgets.MyToolBar;
 import app.widgets.explorer.ConnectionStorageView;
 import app.widgets.TableView;
 import app.widgets.explorer.TreeMenu;
@@ -10,45 +12,47 @@ import io.qt.core.Qt;
 import io.qt.gui.*;
 import io.qt.widgets.*;
 
-import java.io.IOException;
-
 
 /**
  * Класс главного окна, инициализирует все компоненты, вид окошка и всё такое.
- * Много тестового кода
- * Есть штуки, которые надо вынести в отдельные классы и создавать их
- * здесь вызовом конструктора
  */
 public class MainWindow extends QWidget {
 
-    public MainWindow(QIcon newIcon) throws IOException {
-        setWindowTitle( "DB browser" );
+    public MainWindow(QIcon newIcon, boolean online) {
+        this.online = online;
+
+        if (online) {
+            setWindowTitle(UserDataRepository.currentCompany.second);
+        }
+        else {
+            setWindowTitle( "DB browser" );
+        }
         setWindowIcon(newIcon);
         ConnectionController.init(menuController);
         initControls();
         this.show();
     }
 
-    // Текстовое поле, от куда будем брать текст для вывода в консоль
+    public final boolean online;
     public final QTextEdit edit = new QTextEdit();
     public final QLabel tableMessage = new QLabel("");
     public QLabel label = new QLabel("", this);
-    public QMenu popMenu = new QMenu("DropDown", this);//вот эту шляпу в отдельный класс-конструктор вынести огда пэкэджи заработают
-    public QLabel output = new QLabel();
+    public QMenu popMenu = new QMenu("DropDown", this);
+    private final QLabel output = new QLabel();
     public MenuController menuController = new MenuController(this);
-    TableView tableView = new TableView(menuController, true);
-    TreeMenu treeViewMenu = new TreeMenu();
+    public TableView tableView = new TableView(menuController, true);
+    public TreeMenu treeViewMenu = new TreeMenu();
     public QTextEdit dbName = new QTextEdit();
-    QTextEdit dbInfo = new QTextEdit();
-    public QPushButton addRowButton;
-    public LoadMoreRowsButton moreRowsButton;
+    public QTextEdit dbInfo = new QTextEdit();
+    private QPushButton addRowButton;
+    private LoadMoreRowsButton moreRowsButton;
     public TableView tableViewMainTab = new TableView(menuController, false);
-    ConnectionStorageView connectionStorageView = new ConnectionStorageView(this);
+    public ConnectionStorageView connectionStorageView = new ConnectionStorageView(this);
     public QLabel currentTableName = new QLabel("");
     public InfoTab infoTab = new InfoTab();
-    public LoadMoreRowsButton moreRowsButtonR;
+    private final QSizePolicy fixedSizePolicy = fixedSizePolicy();
 
-    private void initControls() throws IOException {
+    private void initControls() {
 
         // Создаём контейнер для виджетов
         QLayout layout = new QGridLayout( this );
@@ -57,36 +61,26 @@ public class MainWindow extends QWidget {
         QToolBar rightBar = new QToolBar();
         rightBar.setOrientation(Qt.Orientation.Vertical);
 
-        //QPalette barPallet = new QPalette();
-        var font = new QFont();
+        QFont font = new QFont();
         font.setPixelSize(12);
         tableMessage.setFont(font);
 
-        for (String i : ConnectionController.getAllConnections()) {
-            connectionStorageView.addConnection(i);
+        if (online) {
+            menuController.loadDatasources();
+        }
+        else {
+            for (String i : ConnectionController.getAllConnections()) {
+                connectionStorageView.addConnection(i);
+            }
         }
 
-        moreRowsButtonR = new LoadMoreRowsButton(menuController, 2);
-        //barPallet.setColor(QPalette.ColorRole.Window, QColor.fromRgb(210, 210, 255));
-        //bigBar.setBackgroundRole(QPalette.ColorRole.Window);
-        //bigBar.setAutoFillBackground(true);
-        //barPallet.setColor(QPalette.ColorRole.Text, QColor.fromRgb(250, 250, 250));
-        //bigBar.setPalette(barPallet);
+        LoadMoreRowsButton moreRowsButtonSQL = new LoadMoreRowsButton(menuController, 2);
 
         output.setText("Your query results will be here");
 
-        QSizePolicy fixedSizePolicy = new QSizePolicy();
-        fixedSizePolicy.setVerticalPolicy(QSizePolicy.Policy.Expanding);
-        fixedSizePolicy.setHorizontalPolicy(QSizePolicy.Policy.Fixed);
+        bigBar.addWidget(addSplitter(10, 10));
 
-        QSplitter splitter1 = new QSplitter();
-        splitter1.setFixedSize(10, 10);
-        splitter1.setSizePolicy(fixedSizePolicy);
-        bigBar.addWidget(splitter1);
-
-        QSizePolicy expandingSizePolicy = new QSizePolicy();
-        expandingSizePolicy.setHorizontalPolicy(QSizePolicy.Policy.Expanding);
-        expandingSizePolicy.setVerticalPolicy(QSizePolicy.Policy.Expanding);
+        QSizePolicy expandingSizePolicy = expandingSizePolicy();
 
         rightBar.setSizePolicy(expandingSizePolicy);
 
@@ -94,34 +88,15 @@ public class MainWindow extends QWidget {
 
         bigBar.setSizePolicy(expandingSizePolicy);
 
-        //Просто кнопка.
-        QPushButton runQuery = new QPushButton( "Run query" );
-
+        QPushButton runQuery = newButton("Run query", "run_clicked()");
         runQuery.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu);
-        QAction act1 = new QAction("act1");
-        act1.triggered.connect(menuController, "act1()");
-        popMenu.addAction(act1);
-        popMenu.addSeparator();
-        QAction callTextBox = new QAction("callTextBox");
-        callTextBox.triggered.connect(menuController, "callTextBox()");
-        popMenu.addAction(callTextBox);
-        QAction callCustomCheckBox = new QAction("callCustomCheckBox");
-        callCustomCheckBox.triggered.connect(menuController, "callCustomCheckBox()");
-        popMenu.addAction(callCustomCheckBox);
-        QAction callDefaultCheckBox = new QAction("callDefaultCheckBox");
-        callDefaultCheckBox.triggered.connect(menuController, "callDefaultCheckBox()");
-        popMenu.addAction(callDefaultCheckBox);
-        //QAction showSchema = new QAction("showSchema");
-        //showSchema.triggered.connect(menuController, "showSchema(String)");
-        //popMenu.addAction(showSchema);
 
-        QPushButton hideButton = new QPushButton( "Clear text" );
-        QPalette pal = new QPalette();
-        pal.setColor(QPalette.ColorRole.ButtonText, new QColor(254, 20, 20));
+        addAllActionsToPopUpMenu();
+
+        QPushButton hideButton = newButton("Clear text", "clear_button_clicked()");
+        QPalette pal = newPallet(254, 20, 20);
         hideButton.setPalette(pal);
 
-        runQuery.clicked.connect(menuController, "run_clicked()" );
-        hideButton.clicked.connect(menuController, "clear_button_clicked()" );
         runQuery.customContextMenuRequested.connect(menuController, "rightClick()");
 
         rightBar.addWidget(hideButton);
@@ -132,63 +107,34 @@ public class MainWindow extends QWidget {
         rightBar.addWidget( runQuery );
         rightBar.addWidget(output);
         rightBar.addWidget(tableView);
-        rightBar.addWidget(moreRowsButtonR);
+        rightBar.addWidget(moreRowsButtonSQL);
 
-        QToolBar upButtonsBar = new QToolBar();
-        QPushButton selectFileButton = new QPushButton("Connect to DB");
-        selectFileButton.clicked.connect(menuController, "connectToDBButtonClicked()");
+        MyToolBar upButtonsBar = new MyToolBar();
+        QPushButton selectFileButton = newButton("Connect to DB", "connectToDBButtonClicked()");
         upButtonsBar.addSeparator();
-        upButtonsBar.addWidget(selectFileButton);
-        upButtonsBar.addSeparator();
+        upButtonsBar.addWidgetAndSeparator(selectFileButton);
         upButtonsBar.setOrientation(Qt.Orientation.Horizontal);
-        QPushButton closeConnectionButton = new QPushButton("Close connection");
-        closeConnectionButton.clicked.connect(menuController, "closeConnectionButtonClicked()");
+        QPushButton closeConnectionButton = newButton("Close connection", "closeConnectionButtonClicked()");
         QPushButton b1 = new QPushButton("PopUp menu");
         b1.setMenu(popMenu);
-        QPushButton reconnectToDBButton = new QPushButton("Reconnect to DB");
-        reconnectToDBButton.clicked.connect(menuController, "reconnectToDBClicked()");
-        upButtonsBar.addWidget(reconnectToDBButton);
-        upButtonsBar.addSeparator();
-        upButtonsBar.addWidget(closeConnectionButton);
-        upButtonsBar.addSeparator();
-        upButtonsBar.addWidget(b1);
-        upButtonsBar.addSeparator();
-
+        QPushButton reconnectToDBButton = newButton("Reconnect to DB", "reconnectToDBClicked()");
+        upButtonsBar.addWidgetAndSeparator(reconnectToDBButton);
+        upButtonsBar.addWidgetAndSeparator(closeConnectionButton);
+        upButtonsBar.addWidgetAndSeparator(b1);
+        if (online) {
+            QPushButton settings = newButton("Settings", "settingsClicked()");
+            upButtonsBar.addWidgetAndSeparator(settings);
+        }
         bigBar.addWidget(rightBar);
         QTabWidget tabWidget = new QTabWidget();
 
-        QToolBar mainTab = new QToolBar();
-        mainTab.setOrientation(Qt.Orientation.Vertical);
-        mainTab.addWidget(new QLabel("DB name:"));
-        dbName.setReadOnly(true);
-        dbInfo.setReadOnly(true);
-        QSizePolicy textPolicy = new QSizePolicy();
-        textPolicy.setVerticalPolicy(QSizePolicy.Policy.Fixed);
-        textPolicy.setHorizontalPolicy(QSizePolicy.Policy.Fixed);
-        dbName.setSizePolicy(textPolicy);
-        dbName.setFixedSize(250, 28);
-        dbInfo.setSizePolicy(textPolicy);
-        dbInfo.setFixedSize(250, 28);
-        mainTab.addWidget(dbName);
-        mainTab.addWidget(new QLabel(" "));
-        mainTab.addWidget(new QLabel("DB info:"));
-        mainTab.addWidget(dbInfo);
-        var smallSplitter = new QSplitter();
-        smallSplitter.setFixedSize(5, 5);
-        mainTab.addWidget(smallSplitter);
-        mainTab.addWidget(currentTableName);
-        mainTab.addWidget(tableViewMainTab);
-        mainTab.addWidget(tableMessage);
-
+        setDbNameAndDBInfo();
         moreRowsButton = new LoadMoreRowsButton(menuController, 1);
+        addRowButton = newButton("Add row", "addRowButtonClicked()");
 
-        addRowButton = new QPushButton("Add row");
-        addRowButton.clicked.connect(menuController, "addRowButtonClicked()");
+        QToolBar mainTab = mainTabInit();
 
-        mainTab.addWidget(moreRowsButton);
-        mainTab.addWidget(addRowButton);
-
-        tabWidget.addTab(mainTab, "MainTab");
+        tabWidget.addTab(mainTab, "Data");
         tabWidget.addTab(infoTab, "Info");
 
         QToolBar sqlTab = new QToolBar();
@@ -210,17 +156,12 @@ public class MainWindow extends QWidget {
         veryBigBar.setSizePolicy(expandingSizePolicy);
         layout.addWidget(veryBigBar);
 
-        QSplitter downSplitter = new QSplitter();
-        downSplitter.setFixedSize(5, 5);
-        downSplitter.sizePolicy().setVerticalPolicy(QSizePolicy.Policy.Fixed);
-        layout.addWidget(downSplitter);
+        layout.addWidget(new QLabel(" "));
 
         QToolBar footerBar = new QToolBar();
         footerBar.setOrientation(Qt.Orientation.Horizontal);
-        QPushButton saveChangesButton = new QPushButton("Save changes");
-        QPushButton discardChangesButton = new QPushButton("Discard changes");
-        saveChangesButton.clicked.connect(menuController, "saveChanges()");
-        discardChangesButton.clicked.connect(menuController, "discardChanges()");
+        QPushButton saveChangesButton = newButton("Save changes", "saveChanges()");
+        QPushButton discardChangesButton = newButton("Discard changes", "discardChanges()");
         footerBar.addWidget(saveChangesButton);
         footerBar.addWidget(discardChangesButton);
 
@@ -239,5 +180,100 @@ public class MainWindow extends QWidget {
         addRowButton.setDisabled(false);
     }
 
+    private QSplitter addSplitter(int w, int h) {
+        QSplitter splitter = new QSplitter();
+        splitter.setFixedSize(w, h);
+        splitter.setSizePolicy(fixedSizePolicy);
+        return splitter;
+    }
+
+    private QSizePolicy fixedSizePolicy() {
+        QSizePolicy sizePolicy = new QSizePolicy();
+        sizePolicy.setVerticalPolicy(QSizePolicy.Policy.Expanding);
+        sizePolicy.setHorizontalPolicy(QSizePolicy.Policy.Fixed);
+        return sizePolicy;
+    }
+
+    private QSizePolicy expandingSizePolicy() {
+        QSizePolicy sizePolicy = new QSizePolicy();
+        sizePolicy.setHorizontalPolicy(QSizePolicy.Policy.Expanding);
+        sizePolicy.setVerticalPolicy(QSizePolicy.Policy.Expanding);
+        return sizePolicy;
+    }
+
+    private void addAllActionsToPopUpMenu() {
+        QAction act1 = new QAction("act1");
+        act1.triggered.connect(menuController, "act1()");
+        popMenu.addAction(act1);
+        popMenu.addSeparator();
+        QAction callTextBox = new QAction("callTextBox");
+        callTextBox.triggered.connect(menuController, "callTextBox()");
+        popMenu.addAction(callTextBox);
+        QAction callCustomCheckBox = new QAction("callCustomCheckBox");
+        callCustomCheckBox.triggered.connect(menuController, "callCustomCheckBox()");
+        popMenu.addAction(callCustomCheckBox);
+        QAction callDefaultCheckBox = new QAction("callDefaultCheckBox");
+        callDefaultCheckBox.triggered.connect(menuController, "callDefaultCheckBox()");
+        popMenu.addAction(callDefaultCheckBox);
+    }
+
+    private QPalette newPallet(int r, int g, int b) {
+        QPalette pal = new QPalette();
+        pal.setColor(QPalette.ColorRole.ButtonText, new QColor(r, g, b));
+        return pal;
+    }
+
+    private QPushButton newButton(String text, String signal) {
+        QPushButton button = new QPushButton(text);
+        button.clicked.connect(menuController, signal);
+        return button;
+    }
+
+    private QSizePolicy textSizePolicyFixed() {
+        QSizePolicy textPolicy = new QSizePolicy();
+        textPolicy.setVerticalPolicy(QSizePolicy.Policy.Fixed);
+        textPolicy.setHorizontalPolicy(QSizePolicy.Policy.Fixed);
+        return textPolicy;
+    }
+
+    private void setDbNameAndDBInfo() {
+        dbName.setReadOnly(true);
+        dbInfo.setReadOnly(true);
+        QSizePolicy textPolicy = textSizePolicyFixed();
+        dbName.setSizePolicy(textPolicy);
+        dbName.setFixedSize(250, 28);
+        dbInfo.setSizePolicy(textPolicy);
+        dbInfo.setFixedSize(250, 28);
+    }
+
+    private QToolBar mainTabInit() {
+        QToolBar mainTab = new QToolBar();
+        mainTab.setOrientation(Qt.Orientation.Vertical);
+        mainTab.addWidget(new QLabel("DB name:"));
+        mainTab.addWidget(dbName);
+        mainTab.addWidget(new QLabel(" "));
+        mainTab.addWidget(new QLabel("DB info:"));
+        mainTab.addWidget(dbInfo);
+        mainTab.addWidget(new QLabel(" "));
+        mainTab.addWidget(currentTableName);
+        mainTab.addWidget(tableViewMainTab);
+        mainTab.addWidget(tableMessage);
+        mainTab.addWidget(moreRowsButton);
+        mainTab.addWidget(addRowButton);
+        return mainTab;
+    }
+
+    void update(boolean full) {
+        if (full) {
+            menuController.loadDatasources();
+
+            setWindowTitle(UserDataRepository.currentCompany.second);
+            //new MainWindow(this.windowIcon(), online);
+            //this.close();
+        }
+        else {
+            setWindowTitle(UserDataRepository.currentCompany.second);
+        }
+    }
 
 }
