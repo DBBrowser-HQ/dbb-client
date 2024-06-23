@@ -1,6 +1,7 @@
 package app.backend.entities;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class Table {
@@ -99,5 +100,33 @@ public class Table {
 
     public ForeignKey getForeignKey(String foreignKeyName) {
         return foreignKeyList.stream().filter(x -> x.getName().equals(foreignKeyName)).findFirst().orElse(null);
+    }
+
+    public void addColumn(String columnName, String dataType, boolean notNull, String defaultDefinition) {
+        Column column = new Column(columnName, dataType, notNull, false, defaultDefinition);
+        this.columnList.add(column);
+    }
+
+    public void addKey(String name, ArrayList<String> columns) {
+        Key key = new Key(name, columns);
+        this.keyList.add(key);
+
+    }
+
+    public void addForeignKey(String name, ArrayList<String> childColumns, String parentTable, ArrayList<String> parentColumns, String onDeleteAction) {
+        this.foreignKeyList.add(new ForeignKey(name, childColumns, parentTable, parentColumns, onDeleteAction));
+
+    }
+
+    public void addIndex(String name, boolean unique, ArrayList<String> columnList) {
+        LinkedList<Column> columnLinkedList = new LinkedList<>();
+        for (String col : columnList) {
+            for (Column column : this.columnList) {
+                if (column.getName().equals(col)) {
+                    columnLinkedList.add(column);
+                }
+            }
+        }
+        this.indexList.add(new Index(name, unique, columnLinkedList));
     }
 }

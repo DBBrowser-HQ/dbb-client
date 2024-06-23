@@ -36,16 +36,32 @@ public class TestTable {
 
 
         connection.newTable("amina", "let's go");
-        connection.addColumn("amina", "ticket_no", "bpchar(13)", true, "");
-        connection.addColumn("amina", "flight_id", "int4", true, "");
-        connection.addColumn("amina", "boarding_no", "int4", true, "");
-        connection.addColumn("amina", "seat_no", "varchar(4)", true, "");
-        connection.addIndex("amina", "boarding_passes_flight_id_boarding_no_key2", true, new ArrayList<>(List.of("flight_id", "boarding_no")));
-        connection.addIndex("amina", "boarding_passes_flight_id_seat_no_key2", true, new ArrayList<>(List.of("flight_id", "seat_no")));
+        connection.getSchema().getTable("amina")
+                .addColumn("ticket_no", "bpchar(13)", true, "");
 
-        connection.addKey("amina", "boarding_passes_pkey2", new ArrayList<>(List.of("ticket_no", "flight_id")));
+        connection.getSchema().getTable("amina")
+                .addColumn("ticket_no", "bpchar(13)", true, "");
 
-        connection.addForeignKey("amina", "boarding_passes_ticket_no_fkey2", new ArrayList<>(List.of("ticket_no", "flight_id")), "ticket_flights", new ArrayList<>(List.of("ticket_no", "flight_id")), "CASCADE");
+        connection.getSchema().getTable("amina")
+                .addColumn("flight_id", "int4", true, "");
+
+        connection.getSchema().getTable("amina")
+                .addColumn("boarding_no", "int4", true, "");
+
+        connection.getSchema().getTable("amina")
+                .addColumn("seat_no", "varchar(4)", true, "");
+
+        connection.getSchema().getTable("amina")
+                .addIndex("boarding_passes_flight_id_boarding_no_key2", true, new ArrayList<>(List.of("flight_id", "boarding_no")));
+
+        connection.getSchema().getTable("amina")
+                .addIndex("boarding_passes_flight_id_seat_no_key2", true, new ArrayList<>(List.of("flight_id", "seat_no")));
+
+        connection.getSchema().getTable("amina")
+                .addKey("boarding_passes_pkey2", new ArrayList<>(List.of("ticket_no", "flight_id")));
+
+        connection.getSchema().getTable("amina")
+                .addForeignKey("boarding_passes_ticket_no_fkey2", new ArrayList<>(List.of("ticket_no", "flight_id")), "ticket_flights", new ArrayList<>(List.of("ticket_no", "flight_id")), "CASCADE");
 
         connection.createTable("amina");
 

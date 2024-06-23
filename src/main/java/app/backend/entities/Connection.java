@@ -135,49 +135,6 @@ public class Connection implements Serializable {
         schema.getTables().add(new Table(tableName, definition));
     }
 
-    public void addColumn(String tableName, String columnName, String dataType, boolean notNull, String defaultDefinition) {
-        Column column = new Column(columnName, dataType, notNull, false, defaultDefinition);
-        for(Table table: schema.getTables()) {
-            if(table.getName().equals(tableName)) {
-                table.getColumns().add(column);
-            }
-        }
-    }
-
-    public void addKey(String tableName, String name, ArrayList<String> columns){
-        Key key = new Key(name, columns);
-        for(Table table: schema.getTables()) {
-            if(table.getName().equals(tableName)) {
-                table.getKeys().add(key);
-            }
-        }
-    }
-
-    public void addForeignKey(String tableName, String name, ArrayList<String> childColumns, String parentTable, ArrayList<String> parentColumns, String onDeleteAction){
-
-        for(Table table: schema.getTables()) {
-            if(table.getName().equals(tableName)) {
-                table.getForeignKeys().add(new ForeignKey(name, childColumns, parentTable, parentColumns, onDeleteAction));
-            }
-        }
-    }
-
-    public void addIndex(String tableName, String name, boolean unique, ArrayList<String> columnList){
-        for(Table table: schema.getTables()) {
-            if(table.getName().equals(tableName)) {
-                LinkedList<Column> columnLinkedList = new LinkedList<>();
-                for(String col: columnList) {
-                    for(Column column: table.getColumns()) {
-                        if(column.getName().equals(col)) {
-                            columnLinkedList.add(column);
-                        }
-                    }
-                }
-                table.getIndexes().add(new Index(name, unique, columnLinkedList));
-            }
-        }
-    }
-
     public void createTable(String tableName){
         for(Table table: schema.getTables()) {
             if(table.getName().equals(tableName)) {
