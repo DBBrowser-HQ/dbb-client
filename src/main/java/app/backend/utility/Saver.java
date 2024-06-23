@@ -7,17 +7,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 public class Saver {
     public static void saveConnectionStorage(ConnectionStorage connectionStorage){
         FileOutputStream fileOutputStream = null;
         try {
-            Path saves = Path.of("saves");
-            if (!Files.exists(saves)) {
-                Files.createDirectories(saves);
-            }
             fileOutputStream = new FileOutputStream("saves/save.ser");
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
             objectOutputStream.writeObject(connectionStorage);
@@ -35,7 +29,7 @@ public class Saver {
             ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
             return (ConnectionStorage) objectInputStream.readObject();
         } catch (ClassNotFoundException | IOException e) {
-            return new ConnectionStorage();
+            throw new RuntimeException(e);
         }
 
     }
