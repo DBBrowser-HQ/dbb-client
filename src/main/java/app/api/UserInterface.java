@@ -21,7 +21,7 @@ public interface UserInterface {
     Call<ResponseBody> refresh(@Body RefreshToken token);
 
     @POST("auth/logout")
-    Call<ResponseBody> logout();
+    Call<ResponseBody> logout(@Header("Authorization") String token);
 
     /** organizations-----------------  */
 

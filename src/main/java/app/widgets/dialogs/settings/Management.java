@@ -84,6 +84,10 @@ public class Management extends MyToolBar {
         QAction users = new QAction("Manage users");
         users.triggered.connect(this, "users()");
         contextMenu.addAction(users);
+
+        QAction deleteOrg = new QAction("Delete organization");
+        deleteOrg.triggered.connect(this, "deleteOrganization()");
+        contextMenu.addAction(deleteOrg);
     }
 
     void contextMenuRequested() {
@@ -108,6 +112,10 @@ public class Management extends MyToolBar {
 
     void renamed() {
 
+    }
+
+    void deleteOrganization() {
+        new ApproveDeleteDialog(this, "this organization", () -> ApiCalls.deleteOrganization(getCurrentId(), callback));
     }
 
     private int getCurrentId() {

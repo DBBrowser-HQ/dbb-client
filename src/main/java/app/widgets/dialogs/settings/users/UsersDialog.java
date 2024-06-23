@@ -4,7 +4,6 @@ import app.api.ApiCalls;
 import app.api.data.responses.User;
 import app.widgets.dialogs.ErrorDialog;
 import app.widgets.dialogs.settings.ApproveDeleteDialog;
-import app.widgets.dialogs.settings.users.ChangeUserRoleDialog;
 import io.qt.core.Qt;
 import io.qt.gui.QAction;
 import io.qt.gui.QCursor;
@@ -34,12 +33,19 @@ public class UsersDialog extends QDialog {
         users.setSizePolicy(expandingSizePolicy());
         users.setShowGrid(true);
         layout.addWidget(users);
+        QPushButton addUser = new QPushButton("Invite user");
+        addUser.clicked.connect(this, "addUserClicked()");
+        layout.addWidget(addUser);
         QPushButton cancel = new QPushButton("Cancel");
         cancel.clicked.connect(this, "cancelClicked()");
         layout.addWidget(cancel);
         this.setLayout(layout);
         getUsers();
         this.show();
+    }
+
+    void addUserClicked() {
+        new AddUserDialog(this, orgId);
     }
 
     void cancelClicked() {
@@ -80,8 +86,8 @@ public class UsersDialog extends QDialog {
     }
 
     void callback(String res) {
-        if (!Objects.equals(res, "Ok")) {
-            //new ErrorDialog(res);
+        if (!Objects.equals(res, "OK")) {
+            new ErrorDialog(res);
         }
         getUsers();
     }

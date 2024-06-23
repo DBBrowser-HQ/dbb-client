@@ -11,12 +11,12 @@ repositories {
 }
 
 //load the values from .properties file
-var keystoreFile = project.rootProject.file(".properties")
-var properties = new Properties()
-properties.load(keystoreFile.newInputStream())
+//var keystoreFile = project.rootProject.file(".properties")
+//var properties = new Properties()
+//properties.load(keystoreFile.newInputStream())
 
 //return empty key in case something goes wrong
-var backendUrl = properties.getProperty("backendUrl") ?: ""
+//var backendUrl = properties.getProperty("backendUrl") ?: ""
 
 application {
     mainClass = 'Main'

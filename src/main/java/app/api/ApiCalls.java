@@ -2,6 +2,7 @@ package app.api;
 
 import app.api.data.requests.*;
 import app.api.data.responses.*;
+import app.widgets.dialogs.ErrorDialog;
 import io.qt.core.QObject;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -240,13 +241,12 @@ public class ApiCalls {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 if(response.code() == 200) {
-                    System.out.println("OK");
                     callback.run();
                 }
                 else {
                     System.out.println(response.code());
                     try {
-                        System.out.println(response.errorBody().string());
+                        new ErrorDialog(response.errorBody().string());
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -256,6 +256,7 @@ public class ApiCalls {
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 System.out.println(t.toString());
+                new ErrorDialog(t.toString());
             }
         });
     }
@@ -372,6 +373,21 @@ public class ApiCalls {
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 System.out.println(t.toString());
                 signalErr.emit("Er2");
+            }
+        });
+    }
+
+    public static void logout() {
+
+        var service = getUserService();
+
+        service.logout("Bearer " + UserDataRepository.accessToken).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {}
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                System.out.println(t.toString());
             }
         });
     }

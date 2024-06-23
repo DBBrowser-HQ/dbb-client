@@ -265,6 +265,7 @@ public class MenuController extends QObject {
     }
 
     public void close() {
+        ApiCalls.logout();
         root.close();
     }
 
