@@ -54,6 +54,7 @@ public class Session {
 
                 connection = pgSimpleDataSource.getConnection();
             }
+            default -> throw new RuntimeException("Unknown connection type: " + connectionInfo.getConnectionType());
         }
         connection.setAutoCommit(false);
         saveStatement = connection.createStatement(); // часть Амины
@@ -263,7 +264,12 @@ public class Session {
     }
 
     public void createView(String viewName, String sql) {
-        String query = "CREATE VIEW IF NOT EXISTS " + viewName + " AS " + sql + ";";
+        String query;
+        switch (connectionInfo.getConnectionType()) {
+            case SQLITE ->  query = "CREATE VIEW IF NOT EXISTS " + viewName + " AS " + sql + ";";
+            case POSTGRESQL -> query = "CREATE OR REPLACE VIEW " + viewName + " AS " + sql + ";";
+            default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+        }
         updateSaveStatement(query);
     }
 
@@ -331,7 +337,6 @@ public class Session {
         }
     }
 
-    // SQLITE
     public List<View> getViews() {
         try {
             List<View> viewList = new ArrayList<>();

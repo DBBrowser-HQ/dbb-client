@@ -2,6 +2,7 @@ package app.backend.entities;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -180,50 +181,55 @@ public class Connection implements Serializable {
 
     // Для отката создания и удаления
     private void rollbackIndexes() {
-        schema.setIndexList(schema.getIndexes().stream().filter(index -> {
+        List<Index> list = schema.getIndexes().stream().filter(index -> {
             if (index.getStatusDDL() == 1) {
                 return false;
             } else if (index.getStatusDDL() == -1) {
                 index.setStatusDDL(0);
             }
             return true;
-        }).toList());
+        }).toList();
+        schema.setIndexList(new ArrayList<>(list));
 
         this.getSchema().getTables().forEach(table -> {
             if (table.getIndexes() != null) {
-                table.setIndexList(table.getIndexes().stream().filter(index -> {
+                List<Index> indexesOfTable = table.getIndexes().stream().filter(index -> {
                     if (index.getStatusDDL() == 1) {
                         return false;
                     } else if (index.getStatusDDL() == -1) {
                         index.setStatusDDL(0);
                     }
                     return true;
-                }).toList());
+                }).toList();
+                table.setIndexList(new ArrayList<>(indexesOfTable));
             }
         });
     }
 
     // Для подтверждения сохранения и удаления
     private void commitIndexes() {
-        schema.setIndexList(schema.getIndexes().stream().filter(index -> {
+        List<Index> list = schema.getIndexes().stream().filter(index -> {
             if (index.getStatusDDL() == -1) {
                 return false;
             } else if (index.getStatusDDL() == 1) {
                 index.setStatusDDL(0);
             }
             return true;
-        }).toList());
+        }).toList();
+
+        schema.setIndexList(new ArrayList<>(list));
 
         this.getSchema().getTables().forEach(table -> {
             if (table.getIndexes() != null) {
-                table.setIndexList(table.getIndexes().stream().filter(index -> {
+                List<Index> indexesInTable = table.getIndexes().stream().filter(index -> {
                     if (index.getStatusDDL() == -1) {
                         return false;
                     } else if (index.getStatusDDL() == 1) {
                         index.setStatusDDL(0);
                     }
                     return true;
-                }).toList());
+                }).toList();
+                table.setIndexList(new ArrayList<>(indexesInTable));
             }
         });
     }
@@ -232,6 +238,7 @@ public class Connection implements Serializable {
         session.createView(viewName, sql);
         View view = new View(viewName, sql);
         view.setStatusDDL(1);
+        System.out.println(schema.getViews().getClass().getName());
         schema.getViews().add(view);
     }
 
@@ -244,25 +251,27 @@ public class Connection implements Serializable {
     }
 
     private void rollbackViews() {
-        schema.setViewList(schema.getViews().stream().filter(view -> {
+        List<View> views = schema.getViews().stream().filter(view -> {
             if (view.getStatusDDL() == 1) {
                 return false;
             } else if (view.getStatusDDL() == -1) {
                 view.setStatusDDL(0);
             }
             return true;
-        }).toList());
+        }).toList();
+        schema.setViewList(new ArrayList<>(views));
     }
 
     private void commitViews() {
-        schema.setViewList(schema.getViews().stream().filter(view -> {
+        List<View> views = schema.getViews().stream().filter(view -> {
             if (view.getStatusDDL() == -1) {
                 return false;
             } else if (view.getStatusDDL() == 1) {
                 view.setStatusDDL(0);
             }
             return true;
-        }).toList());
+        }).toList();
+        schema.setViewList(new ArrayList<>(views));
     }
 
     public void saveChanges() {
