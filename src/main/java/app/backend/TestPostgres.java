@@ -10,7 +10,6 @@ import app.backend.entities.Table;
 import app.backend.entities.View;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,21 +20,31 @@ public class TestPostgres {
         Map<String, String> info = new HashMap<>();
 
         // hosting
-        info.put("host", "db-cloud.ru");
-        info.put("port", "8082");
-        info.put("datasourceId", "1");
-        info.put("accessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkxMjk4ODUsImlhdCI6MTcxOTEyNjI4NSwidXNlcklkIjoxfQ.Pef18w-ZvnkNbYZ22rotvKBvYI7szhmAkdQgOHPATfI");
+//        info.put("host", "db-cloud.ru");
+//        info.put("port", "8082");
+//        info.put("datasourceId", "1");
+//        info.put("accessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkxNTQxMjksImlhdCI6MTcxOTE1MDUyOSwidXNlcklkIjoxfQ.v46ZjJ19eDvU4yrB3QAcxmiGnfNkk3pVGt8po1bjbuk");
 
         // localhost
-//        info.put("host", "localhost");
-//        info.put("port", "8082");
-//        info.put("datasourceId", "2");
-//        info.put("accessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkxNTAzMjksImlhdCI6MTcxOTE0NjcyOSwidXNlcklkIjoxfQ.PqVEwpBvt_YK8DlgVVEX0XtSBCXTJfvxOO6vV-OcEDs");
+        info.put("host", "localhost");
+        info.put("port", "8082");
+        info.put("datasourceId", "2");
+        info.put("accessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkxNjI2NDQsImlhdCI6MTcxOTE1OTA0NCwidXNlcklkIjoxfQ.2gdCKiJKXtFsyTPJoYLQuwPJB_onl0xBb4egdRPNJ4Q");
 
         ConnectionInfo connectionInfo = new ConnectionInfo(ConnectionInfo.ConnectionType.POSTGRESQL, info);
         String connectionName = "поставить сюда имя, соответствующее datasource'у, к которому подключаемся";
         Connection connection = new Connection(connectionName, connectionInfo);
         conn.addConnectionToStorage(connection);
+
+        DataTable dataTable = connection.executeQuery("SELECT * FROM example1;");
+        System.out.println(dataTable.getMessage());
+        System.out.println(dataTable.getColumnNames());
+        for (List<String> row : dataTable.getRows()) {
+            for (int i = 0; i < dataTable.getColumnNames().size(); i++) {
+                System.out.print(row.get(i) + " ");
+            }
+            System.out.println();
+        }
 
         // GET Tables
         Schema schema = connection.getSchema();
@@ -44,7 +53,7 @@ public class TestPostgres {
         tables.forEach(t -> System.out.println(t.getName() + " " + t.getDefinition()));
 
 //        // Get table data
-//        DataTable dataTable = connection.getDataFromTable("table2");
+//        DataTable dataTable = connection.getDataFromTable("example1");
 //        System.out.println(dataTable.getMessage());
 //        System.out.println(dataTable.getColumnNames());
 //        for (List<String> row : dataTable.getRows()) {
@@ -54,12 +63,12 @@ public class TestPostgres {
 //            System.out.println();
 //        }
 //
-//        // Insert data
-//        connection.insertData("table2", new ArrayList<>(List.of("2.43")));
+//        // Delete data
+//        connection.deleteData("example1", 1);
 //        connection.saveChanges();
 //
 //        // Get updated data
-//        dataTable = connection.getDataFromTable("table2");
+//        dataTable = connection.getDataFromTable("example1");
 //        System.out.println(dataTable.getMessage());
 //        System.out.println(dataTable.getColumnNames());
 //        for (List<String> row : dataTable.getRows()) {
@@ -82,7 +91,7 @@ public class TestPostgres {
         List<View> views = schema.getViews();
         views.forEach(v -> System.out.println(v.getName() + " " + v.getDefinition()));
 
-        Table table = schema.getTable("datasources");
+        Table table = schema.getTable("example1");
         connection.setForeignKeysFor(table.getName());
         connection.setKeysFor(table.getName());
         connection.setColumnsFor(table.getName());
@@ -92,7 +101,17 @@ public class TestPostgres {
         table.getForeignKeys().forEach(System.out::println);
         table.getKeys().forEach(System.out::println);
 
-        // Необязательно, прокси умеет такое обходиить 😎
+        // Create and delete of Index
+        connection.deleteIndex("name_index", "example1");
+        connection.createIndex("name_index", "example1", true, List.of("name"));
+        connection.saveChanges();
+
+        // Create and delete view
+        connection.deleteView("cool_view");
+        connection.createView("cool_view", "SELECT * FROM example1");
+        connection.createView("cool_view1", "SELECT * FROM example");
+        connection.saveChanges();
+        // Необязательно, прокси умеет такое обходить ╰(*°▽°*)╯
         // connection.disconnect();
     }
 }
