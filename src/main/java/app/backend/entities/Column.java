@@ -34,4 +34,15 @@ public class Column {
     public String getDefaultDefinition() {
         return defaultDefinition;
     }
+
+    @Override
+    public String toString() {
+        return "Column{" +
+                "name='" + name + '\'' +
+                ", dataType='" + dataType + '\'' +
+                ", notNull=" + notNull +
+                ", autoInc=" + autoInc +
+                ", defaultDefinition='" + defaultDefinition + '\'' +
+                '}';
+    }
 }

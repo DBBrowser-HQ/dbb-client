@@ -39,4 +39,14 @@ public class ForeignKey {
     public List<String> getParentColumns() {
         return parentColumns;
     }
+
+    @Override
+    public String toString() {
+        return "ForeignKey{" +
+                "name='" + name + '\'' +
+                ", childColumns=" + childColumns +
+                ", parentTable='" + parentTable + '\'' +
+                ", parentColumns=" + parentColumns +
+                '}';
+    }
 }

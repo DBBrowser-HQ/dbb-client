@@ -1,9 +1,7 @@
 package app.backend.entities;
 
-import javax.xml.crypto.Data;
 import java.io.Serial;
 import java.io.Serializable;
-import java.sql.DatabaseMetaData;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -20,7 +18,9 @@ public class Connection implements Serializable {
     private transient Session session;
 
     // в зависимости от этой переменной будем выводить сразу содержимое схемы или список баз данных
-    private boolean supportsDatabaseAndSchema;
+    // UPD: решил, что в зависимости от этой переменной будем определять PostgresSQL или нет
+    // UPD2: сейчас не нужно, можно просто по connectionType
+    private boolean supportsSchema;
 
     public Connection(String name, ConnectionInfo connectionInfo) {
         this.name = name;
@@ -34,12 +34,13 @@ public class Connection implements Serializable {
         }
         this.session = new Session(connectionInfo);
         this.isConnected = session.isConnected();
-        this.supportsDatabaseAndSchema = session.isSupportsDatabaseAndSchema();
-        if (supportsDatabaseAndSchema) {
-            setDatabaseList();
-        } else {
-            setSchema();
-        }
+        this.supportsSchema = session.isSupportsSchema();
+//        if (supportsSchema) {
+//            setDatabaseList();
+//        } else {
+//            setSchema();
+//        }
+        setSchema();
     }
 
     public void disconnect() {
@@ -51,12 +52,13 @@ public class Connection implements Serializable {
     public void reconnect() {
         session.reconnect(connectionInfo);
         this.isConnected = session.isConnected();
-        this.supportsDatabaseAndSchema = session.isSupportsDatabaseAndSchema();
-        if (supportsDatabaseAndSchema) {
-            setDatabaseList();
-        } else {
-            setSchema();
-        }
+        this.supportsSchema = session.isSupportsSchema();
+//        if (supportsSchema) {
+//            setDatabaseList();
+//        } else {
+//            setSchema();
+//        }
+        setSchema();
     }
 
     public ConnectionInfo getConnectionInfo() {
@@ -67,16 +69,17 @@ public class Connection implements Serializable {
         this.connectionInfo = connectionInfo;
         this.session.reconnect(connectionInfo);
         this.isConnected = session.isConnected();
-        this.supportsDatabaseAndSchema = session.isSupportsDatabaseAndSchema();
-        if (supportsDatabaseAndSchema) {
-            setDatabaseList();
-        } else {
-            setSchema();
-        }
+        this.supportsSchema = session.isSupportsSchema();
+//        if (supportsSchema) {
+//            setDatabaseList();
+//        } else {
+//            setSchema();
+//        }
+        setSchema();
     }
 
     public boolean isConnected() {
-        return isConnected;
+        return session.isConnected();
     }
 
     public String getName() {
@@ -87,16 +90,19 @@ public class Connection implements Serializable {
         this.name = name;
     }
 
+    @Deprecated
     public List<String> getDatabaseList() {
         return databaseList.stream().map(Database::getName).toList();
     }
 
+    @Deprecated
     public Database getDatabase(String name) {
         return databaseList.stream()
             .filter(element -> element.getName().equals(name))
             .findFirst().orElse(null);
     }
 
+    @Deprecated
     public void setDatabaseList() {
         this.databaseList = session.getDatabases();
     }
@@ -106,7 +112,12 @@ public class Connection implements Serializable {
     }
 
     public void setSchema() {
-        this.schema = new Schema("schema");
+        String name = "default";
+        switch (connectionInfo.getConnectionType()) {
+            case SQLITE -> name = "schema";
+            case POSTGRESQL -> name = "public";
+        }
+        this.schema = new Schema(name);
     }
 
     public DataTable getDataFromTable(String tableName) {
@@ -266,6 +277,7 @@ public class Connection implements Serializable {
         session.discardChanges();
     }
 
+    @Deprecated
     public void setSchemasFor(String databaseName) {
         List<Schema> schemaList = session.getSchemas(databaseName);
         getDatabase(databaseName).setSchemaList(schemaList);
@@ -323,17 +335,15 @@ public class Connection implements Serializable {
         table.setKeyList(keyList);
     }
 
+    public boolean isSupportsSchema() {
+        return supportsSchema;
+    }
 
     @Deprecated
     public Session getSession() {
         return session;
     }
 
-
-
-    public boolean isSupportsDatabaseAndSchema() {
-        return supportsDatabaseAndSchema;
-    }
 
     @Override
     public String toString() {
@@ -344,7 +354,7 @@ public class Connection implements Serializable {
                 ", databaseList=" + databaseList +
                 ", schema=" + schema +
                 ", session=" + session +
-                ", supportsDatabaseAndSchema=" + supportsDatabaseAndSchema +
+                ", supportsDatabaseAndSchema=" + supportsSchema +
                 '}';
     }
 }

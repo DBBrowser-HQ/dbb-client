@@ -34,4 +34,14 @@ public class Index {
     public void setStatusDDL(int statusDDL) {
         this.statusDDL = statusDDL;
     }
+
+    @Override
+    public String toString() {
+        return "Index{" +
+                "name='" + name + '\'' +
+                ", unique=" + unique +
+                ", columnLinkedList=" + columnLinkedList +
+                ", statusDDL=" + statusDDL +
+                '}';
+    }
 }

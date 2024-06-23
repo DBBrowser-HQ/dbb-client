@@ -23,4 +23,12 @@ public class Key {
     public List<String> getColumns() {
         return columns;
     }
+
+    @Override
+    public String toString() {
+        return "Key{" +
+                "name='" + name + '\'' +
+                ", columns=" + columns +
+                '}';
+    }
 }
