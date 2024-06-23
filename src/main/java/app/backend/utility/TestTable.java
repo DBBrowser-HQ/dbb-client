@@ -1,8 +1,16 @@
 package app.backend.utility;
 
-import app.backend.entities.*;
 
-import java.util.*;
+
+import app.backend.entities.Connection;
+import app.backend.entities.ConnectionInfo;
+import app.backend.entities.ConnectionStorage;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 public class TestTable {
     public static void main(String[] args) {
