@@ -4,8 +4,10 @@ import javax.xml.crypto.Data;
 import java.io.Serial;
 import java.io.Serializable;
 import java.sql.DatabaseMetaData;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 public class Connection implements Serializable {
     @Serial
@@ -106,7 +108,11 @@ public class Connection implements Serializable {
     }
 
     public void setSchema() {
-        this.schema = new Schema("schema");
+        this.schema = new Schema("public");
+    }
+
+    public void setSchema(String name) {
+        this.schema = new Schema(name);
     }
 
     public DataTable getDataFromTable(String tableName) {
@@ -125,8 +131,74 @@ public class Connection implements Serializable {
         return session.executeQuery(sql, DEFAULT_ROWS_TO_GET);
     }
 
+//    public void createTable(String tableName,
+//                            String definition,
+//                            Map<String, String> columns,
+//                            List<String> primaryKeys,
+//                            List<String> notNullColumns,
+//                            List<String> autoIncColumns){
+//        session.createTable(name, definition, columns, primaryKeys, notNullColumns);
+//        Table table = new Table(name, definition);
+//
+//        schema.getTables().add(table);
+//    }
+
+    public void newTable(String tableName, String definition) {
+        schema.getTables().add(new Table(tableName, definition));
+    }
+
+    public void addColumn(String tableName, String columnName, String dataType, boolean notNull, String defaultDefinition) {
+        Column column = new Column(columnName, dataType, notNull, defaultDefinition);
+        for(Table table: schema.getTables()) {
+            if(table.getName().equals(tableName)) {
+                table.getColumns().add(column);
+            }
+        }
+    }
+
+    public void addKey(String tableName, String name, ArrayList<String> columns){
+        Key key = new Key(name, columns);
+        for(Table table: schema.getTables()) {
+            if(table.getName().equals(tableName)) {
+                table.getKeys().add(key);
+            }
+        }
+    }
+
+    public void addForeignKey(String tableName, String name, ArrayList<String> childColumns, String parentTable, ArrayList<String> parentColumns, String onDeleteAction){
+        ForeignKey foreignKey = new ForeignKey(name, childColumns, parentTable, parentColumns, onDeleteAction);
+        for(Table table: schema.getTables()) {
+            if(table.getName().equals(tableName)) {
+                table.getForeignKeys().add(foreignKey);
+            }
+        }
+    }
+
+    public void addIndex(String tableName, String name, boolean unique, ArrayList<String> columnLinkedList){
+        Index index = new Index(name, unique, columnLinkedList);
+        for(Table table: schema.getTables()) {
+            if(table.getName().equals(tableName)) {
+                table.getIndexes().add(index);
+            }
+        }
+    }
+
+    public void createTable(String tableName){
+        for(Table table: schema.getTables()) {
+            if(table.getName().equals(tableName)) {
+                session.createTable(table);
+            }
+        }
+    }
+
+    public void dropTable(String tableName, boolean isExist, boolean cascade){
+        session.dropTable(tableName, isExist, cascade);
+        schema.getTables().removeIf(table -> table.getName().equals(tableName));
+    }
+
     public DataTable insertData(String tableName, List<String> newValues) {
-        session.insertData(tableName, newValues, schema.getTable(tableName).getDataTable().getColumnNames());
+        Table table = schema.getTable(tableName);
+        session.insertData(tableName, newValues, table.getDataTable().getColumnNames());
         return getDataFromTable(tableName);
     }
 
@@ -147,9 +219,9 @@ public class Connection implements Serializable {
         Table table = schema.getTable(tableName);
         this.setColumnsFor(tableName);
         List<Column> columns = table.getColumns().stream().filter(c -> columnsNames.contains(c.getName())).toList();
-        LinkedList<Column> columnLinkedList = new LinkedList<>();
+        ArrayList<String> columnLinkedList = new ArrayList<>();
         for (String name : columnsNames) {
-            columnLinkedList.addLast(columns.stream().filter(c -> c.getName().equals(name)).findFirst().orElse(null));
+            columnLinkedList.add(columns.stream().map(Column::getName).filter(cName -> cName.equals(name)).findFirst().orElse(null));
         }
         Index newIndex = new Index(indexName, isUnique, columnLinkedList);
         newIndex.setStatusDDL(1);
@@ -260,10 +332,11 @@ public class Connection implements Serializable {
         session.saveChanges();
     }
 
-    public void discardChanges() {
+    public ArrayList<String>  discardChanges() {
         rollbackIndexes();
         rollbackViews();
-        session.discardChanges();
+        Cancel cancel = session.discardChanges();
+        return new ArrayList<>(List.of(cancel.getTableName(), cancel.getIndex().toString()));
     }
 
     public void setSchemasFor(String databaseName) {
@@ -278,7 +351,7 @@ public class Connection implements Serializable {
     }
 
     public void setTables() {
-        List<Table> tableList = session.getTables();
+        List<Table> tableList = session.getTables(schema);
         schema.setTableList(tableList);
     }
 

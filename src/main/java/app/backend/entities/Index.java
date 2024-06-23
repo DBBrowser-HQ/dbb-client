@@ -1,14 +1,15 @@
 package app.backend.entities;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 public class Index {
     private String name;
     private boolean unique;
-    private LinkedList<Column> columnLinkedList;
+    private ArrayList<String> columnLinkedList;
     private int statusDDL;
 
-    public Index(String name, boolean unique, LinkedList<Column> columnLinkedList) {
+    public Index(String name, boolean unique, ArrayList<String> columnLinkedList) {
         this.name = name;
         this.unique = unique;
         this.columnLinkedList = columnLinkedList;
@@ -23,7 +24,7 @@ public class Index {
         return unique;
     }
 
-    public LinkedList<Column> getColumnLinkedList() {
+    public ArrayList<String> getColumnLinkedList() {
         return columnLinkedList;
     }
 

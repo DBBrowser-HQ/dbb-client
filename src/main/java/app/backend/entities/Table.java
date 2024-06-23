@@ -1,5 +1,6 @@
 package app.backend.entities;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Table {
@@ -14,6 +15,10 @@ public class Table {
     public Table(String name, String definition) {
         this.name = name;
         this.definition = definition;
+        this.columnList = new ArrayList<>();
+        this.indexList = new ArrayList<>();
+        this.keyList = new ArrayList<>();
+        this.foreignKeyList = new ArrayList<>();
     }
 
     public DataTable getDataTable() {
@@ -70,6 +75,14 @@ public class Table {
 
     public List<String> getKeyList() {
         return keyList.stream().map(Key::getName).toList();
+    }
+
+    public List<Key> getKeys() {
+        return keyList;
+    }
+
+    public List<ForeignKey> getForeignKeys() {
+        return foreignKeyList;
     }
 
     public Key getKey(String keyName) {

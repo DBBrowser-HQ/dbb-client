@@ -7,9 +7,9 @@ public class Key {
     private String name;
     private List<String> columns;
 
-    public Key(String name, String column) {
+    public Key(String name, ArrayList<String> columns) {
         this.name = name;
-        this.columns = new ArrayList<>(List.of(column));
+        this.columns = columns;
     }
 
     public void addColumn(String column) {

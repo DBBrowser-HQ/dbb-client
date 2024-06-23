@@ -3,21 +3,15 @@ package app.backend.entities;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.sqlite.SQLiteDataSource;
 
+import javax.sql.DataSource;
 import javax.swing.plaf.nimbus.State;
+import java.sql.*;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Session {
     private Connection connection;
+    private Stack<Cancel> savepoints = new Stack<>();
     private ConnectionInfo connectionInfo;
     private Statement saveStatement;
     private DatabaseMetaData meta;
@@ -53,7 +47,7 @@ public class Session {
         saveStatement = connection.createStatement();
         meta = connection.getMetaData();
         supportsDatabaseAndSchema = meta.supportsCatalogsInDataManipulation() &&
-            meta.supportsSchemasInDataManipulation();
+                meta.supportsSchemasInDataManipulation();
         return connection;
     }
 
@@ -163,13 +157,16 @@ public class Session {
 
     public void insertData(String tableName, List<String> newValues, List<String> columnNames) {
         String columns = columnNames.stream().reduce("", (x, y) -> x + ", " + y).substring(2);
-        String values = newValues.stream().reduce("", (x, y) ->  x + "\'"  + ", " + "\'" + y ).substring(3) + "\'";
+        String values = newValues.stream().reduce("", (x, y) -> x + "\'" + ", " + "\'" + y).substring(3) + "\'";
         String sql = "INSERT INTO " + tableName + " (" + columns + ") " + "VALUES (" + values + ");";
         Statement statement = getStatement();
         try {
+            Savepoint savepoint = connection.setSavepoint();
+            savepoints.add(new Cancel(savepoint, tableName, 0));
             statement.executeUpdate(sql);
+
         } catch (SQLException e) {
-            throw new RuntimeException("Can't insert data");
+            throw new RuntimeException("Can't insert data " + e.getMessage());
         }
     }
 
@@ -188,9 +185,12 @@ public class Session {
         String sql = "DELETE FROM " + tableName + " WHERE " + actualKey + " = " + "\'" + id + "\'" + ";";
         Statement statement = getStatement();
         try {
+            Savepoint savepoint = connection.setSavepoint();
+            savepoints.add(new Cancel(savepoint, tableName, 0));
             statement.executeUpdate(sql);
+
         } catch (SQLException e) {
-            throw new RuntimeException("Can't delete data");
+            throw new RuntimeException("Can't delete data " + e.getMessage());
         }
 
         dataTable.deleteRow(index);
@@ -219,7 +219,10 @@ public class Session {
             for (int i = 0; i < values.size(); i++) {
                 preparedStatement.setString(i + 1, values.get(i));
             }
+            Savepoint savepoint = connection.setSavepoint();
+            savepoints.add(new Cancel(savepoint, tableName, rowNumber));
             preparedStatement.executeUpdate();
+
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -257,7 +260,7 @@ public class Session {
         try {
             saveStatement.addBatch(sql);
         } catch (SQLException e) {
-            throw new RuntimeException("Something wrong happened while attempting to add new batch");
+            throw new RuntimeException("Something wrong happened while attempting to add new batch: " + e.getMessage());
         }
     }
 
@@ -270,12 +273,17 @@ public class Session {
         }
     }
 
-    public void discardChanges() {
+    public Cancel discardChanges() {
         try {
             saveStatement.clearBatch();
-            connection.rollback();
+            if (savepoints.isEmpty() || savepoints.size() == 1) {
+                connection.rollback();
+                return null;
+            }
+            connection.rollback(savepoints.peek().getSavepoint());
+            return savepoints.pop();
         } catch (SQLException e) {
-            throw new RuntimeException("Can't discard changes");
+            throw new RuntimeException("Can't discard changes: " + e.getMessage());
         }
     }
 
@@ -325,21 +333,37 @@ public class Session {
         }
     }
 
-    public List<Table> getTables() {
+    public List<Table> getTables(Schema schema) {
+        List<Table> tableList = new ArrayList<>();
+        Statement statement = getStatement();
         try {
-            List<Table> tableList = new ArrayList<>();
-            Statement statement = getStatement();
-            ResultSet resultSet = statement.executeQuery(
-                "SELECT name, sql FROM sqlite_master " +
-                    "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')");
-            while (resultSet.next()) {
-                tableList.add(new Table(resultSet.getString("name"), resultSet.getString("sql")));
+            switch (connectionInfo.getConnectionType()) {
+                case SQLITE -> {
+                    ResultSet resultSet = statement.executeQuery(
+                            "SELECT name, sql FROM sqlite_master " +
+                                    "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')");
+                    while (resultSet.next()) {
+                        tableList.add(new Table(resultSet.getString("name"), resultSet.getString("sql")));
+                    }
+                    statement.close();
+
+                }
+                case POSTGRESQL -> {
+                    ResultSet resultSet = statement.executeQuery(
+                            "SELECT table_name\n" +
+                                    "FROM information_schema.tables\n" +
+                                    "WHERE table_schema = '" + schema.getName() + "'\n" +
+                                    "  AND table_type = 'BASE TABLE';"
+                    );
+                    while (resultSet.next()) {
+                        tableList.add(new Table(resultSet.getString("TABLE_NAME"), ""));
+                    }
+                }
             }
-            statement.close();
-            return tableList;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+        return tableList;
     }
 
     public List<Index> getIndexes() {
@@ -347,8 +371,8 @@ public class Session {
             List<Index> indexList = new ArrayList<>();
             Statement statement = getStatement();
             ResultSet resultSet = statement.executeQuery(
-                "SELECT name FROM sqlite_master " +
-                    "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')");
+                    "SELECT name FROM sqlite_master " +
+                            "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')");
             while (resultSet.next()) {
                 indexList.addAll(getIndexes(resultSet.getString("name")));
             }
@@ -374,7 +398,7 @@ public class Session {
                 boolean unique = !resultSet.getBoolean("NON_UNIQUE");
 
                 // Возможно убрать в отдельную функцию получение колонок
-                LinkedList<Column> columnLinkedList = new LinkedList<>();
+                ArrayList<String> columnLinkedList = new ArrayList<>();
                 ResultSet columnsNamesResultSet = statement.executeQuery("PRAGMA index_info('" + name + "')");
                 while (columnsNamesResultSet.next()) {
                     String columnName = columnsNamesResultSet.getString("name");
@@ -383,7 +407,7 @@ public class Session {
                     boolean notNull = columnsResultSet.getString("IS_NULLABLE").equals("YES");
                     boolean autoInc = columnsResultSet.getString("IS_AUTOINCREMENT").equals("YES");
                     String defaultDefinition = columnsResultSet.getString("COLUMN_DEF");
-                    columnLinkedList.addLast(new Column(columnName, dataType, notNull, autoInc, defaultDefinition));
+                    columnLinkedList.add(columnName);
                 }
 
                 indexList.add(new Index(name, unique, columnLinkedList));
@@ -405,7 +429,7 @@ public class Session {
                 boolean notNull = resultSet.getString("IS_NULLABLE").equals("YES");
                 boolean autoInc = resultSet.getString("IS_AUTOINCREMENT").equals("YES");
                 String defaultDefinition = resultSet.getString("COLUMN_DEF");
-                columnList.add(new Column(name, dataType, notNull, autoInc, defaultDefinition));
+                columnList.add(new Column(name, dataType, notNull, defaultDefinition));
             }
             return columnList;
         } catch (SQLException e) {
@@ -430,17 +454,17 @@ public class Session {
                     index = index + 1;
                 }
                 String name = (rs.getString("FK_NAME") == null || rs.getString("FK_NAME").isEmpty()) ?
-                    ("FK_" + tableName + "_" + parentTable + "_" + index) : rs.getString("FK_NAME");
+                        ("FK_" + tableName + "_" + parentTable + "_" + index) : rs.getString("FK_NAME");
 
                 if (currentKeySeq == 1) {
                     previousKeySeq = 1;
-                    foreignKeyList.add(new ForeignKey(name, childColumn, parentTable, parentColumn));
+                    foreignKeyList.add(new ForeignKey(name, new ArrayList<>(List.of(childColumn)), parentTable, new ArrayList<>(List.of(parentColumn)), ""));
                 } else {
                     previousKeySeq = currentKeySeq;
                     ForeignKey fk = foreignKeyList.stream().filter(x -> x.getName().equals(name)).findFirst().orElse(null);
 
                     if (fk == null) {
-                        foreignKeyList.add(new ForeignKey(name, childColumn, parentTable, parentColumn));
+                        foreignKeyList.add(new ForeignKey(name, new ArrayList<>(List.of(childColumn)), parentTable, new ArrayList<>(List.of(parentColumn)), ""));
                     } else {
                         fk.addChildColumn(childColumn);
                         fk.addParentColumn(parentColumn);
@@ -468,17 +492,17 @@ public class Session {
                     index = index + 1;
                 }
                 String name = (resultSet.getString("PK_NAME") == null ||
-                    resultSet.getString("PK_NAME").isEmpty()) ?
-                    (tableName + "_PK" + "_" + index) : resultSet.getString("PK_NAME");
+                        resultSet.getString("PK_NAME").isEmpty()) ?
+                        (tableName + "_PK" + "_" + index) : resultSet.getString("PK_NAME");
 
                 if (currentKeySeq == 1) {
                     previousKeySeq = 1;
-                    keyList.add(new Key(name, column));
+                    keyList.add(new Key(name, new ArrayList<>(List.of(column))));
                 } else {
                     previousKeySeq = currentKeySeq;
                     Key key = keyList.stream().filter(x -> x.getName().equals(name)).findFirst().orElse(null);
                     if (key == null) {
-                        keyList.add(new Key(name, column));
+                        keyList.add(new Key(name, new ArrayList<>(List.of(column))));
                     } else {
                         key.addColumn(column);
                     }
@@ -516,6 +540,85 @@ public class Session {
             return new DataTable(columnNames, rows, rs, rowsGot, executionTime);
         } catch (SQLException e) {
             return new DataTable(e.getMessage());
+        }
+    }
+
+    public void createTable(Table table) {
+        StringBuilder sql = new StringBuilder("CREATE TABLE IF NOT EXISTS " + table.getName() + " (");
+        for (Column column : table.getColumns()) {
+            sql.append(column.getName()).append(" ").append(column.getDataType());
+            if (column.isNotNull()) {
+                sql.append(" NOT NULL");
+            }
+            sql.append(",\n");
+        }
+
+        for (Index index : table.getIndexes()) {
+            sql.append("CONSTRAINT ").append(index.getName()).append(" UNIQUE (");
+            for (String column : index.getColumnLinkedList()) {
+                sql.append(column).append(", ");
+            }
+            sql.setLength(sql.length() - 2);
+            sql.append("),\n");
+        }
+
+        for (Key key : table.getKeys()) {
+            sql.append("CONSTRAINT ").append(key.getName()).append(" PRIMARY KEY (");
+            for (String column : key.getColumns()) {
+                sql.append(column).append(", ");
+            }
+            sql.setLength(sql.length() - 2);
+            sql.append("),\n");
+        }
+
+        for (ForeignKey foreignKey : table.getForeignKeys()) {
+            sql.append("CONSTRAINT ").append(foreignKey.getName()).append(" FOREIGN KEY (");
+            for (String childColumn : foreignKey.getChildColumns()) {
+                sql.append(childColumn).append(", ");
+            }
+            sql.setLength(sql.length() - 2);
+            sql.append(") REFERENCES ").append(foreignKey.getParentTable()).append(" (");
+            for (String parentColumn : foreignKey.getParentColumns()) {
+                sql.append(parentColumn).append(", ");
+            }
+            sql.setLength(sql.length() - 2);
+            sql.append(") ");
+            if (!Objects.equals(foreignKey.getOnDeleteAction(), "")) {
+                sql.append("ON DELETE ").append(foreignKey.getOnDeleteAction());
+            }
+            sql.append(",\n");
+        }
+        sql.setLength(sql.length() - 2);
+
+        sql.append(");");
+        Statement statement = getStatement();
+        System.out.println(sql);
+        try {
+            Savepoint savepoint = connection.setSavepoint();
+            savepoints.add(new Cancel(savepoint, table.getName(), 0));
+            statement.executeUpdate(sql.toString());
+        } catch (SQLException e) {
+            throw new RuntimeException("Error creating table", e);
+        }
+    }
+
+    public void dropTable(String tableName, boolean ifExists, boolean cascade) {
+        StringBuilder sql = new StringBuilder("DROP TABLE ");
+        if(ifExists){
+            sql.append("IF EXISTS ");
+        }
+        sql.append(tableName);
+        if(cascade){
+            sql.append(" CASCADE");
+        }
+        sql.append(";\n");
+        Statement statement = getStatement();
+        try {
+            Savepoint savepoint = connection.setSavepoint();
+            savepoints.add(new Cancel(savepoint, "", 0));
+            statement.executeUpdate(sql.toString());
+        } catch (SQLException e) {
+            throw new RuntimeException("Error drop table", e);
         }
     }
 }
