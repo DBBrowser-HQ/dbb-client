@@ -76,6 +76,10 @@ public class Table {
         return keyList.stream().filter(x -> x.getName().equals(keyName)).findFirst().orElse(null);
     }
 
+    public List<Key> getKeys() {
+        return keyList;
+    }
+
     public void setForeignKeyList(List<ForeignKey> foreignKeyList) {
         this.foreignKeyList = foreignKeyList;
     }
@@ -86,5 +90,9 @@ public class Table {
 
     public ForeignKey getForeignKey(String foreignKeyName) {
         return foreignKeyList.stream().filter(x -> x.getName().equals(foreignKeyName)).findFirst().orElse(null);
+    }
+
+    public List<ForeignKey> getForeignKeys() {
+        return foreignKeyList;
     }
 }

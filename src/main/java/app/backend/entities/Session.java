@@ -21,13 +21,13 @@ public class Session {
     private ConnectionInfo connectionInfo;
     private Statement saveStatement;
     private DatabaseMetaData meta;
-    private boolean supportsDatabaseAndSchema;
+    private boolean supportsSchema;
 
     public Session(ConnectionInfo info) {
         try {
             connection = connect(info);
         } catch (SQLException e) {
-            throw new RuntimeException("Problems with connection");
+            throw new RuntimeException("Problems with connection: " + e.getMessage());
         }
     }
 
@@ -43,17 +43,23 @@ public class Session {
             case POSTGRESQL -> {
                 PGSimpleDataSource pgSimpleDataSource = new PGSimpleDataSource();
                 Map<String, String> props = connectionInfo.getProperties();
-                pgSimpleDataSource.setUrl(props.get("url"));
-                pgSimpleDataSource.setUser(props.get("username"));
-                pgSimpleDataSource.setPassword(props.get("password"));
+                pgSimpleDataSource.setUser(props.get("accessToken"));
+                pgSimpleDataSource.setPassword("31032003");
+                pgSimpleDataSource.setServerNames(new String[]{props.get("host")});
+                pgSimpleDataSource.setPortNumbers(new int[]{Integer.parseInt(props.get("port"))});
+                pgSimpleDataSource.setDatabaseName(props.get("datasourceId"));
+                pgSimpleDataSource.setSslmode("disable");
+                pgSimpleDataSource.setTcpKeepAlive(true);
+                pgSimpleDataSource.setTcpNoDelay(true);
+
                 connection = pgSimpleDataSource.getConnection();
             }
         }
         connection.setAutoCommit(false);
-        saveStatement = connection.createStatement();
+        saveStatement = connection.createStatement(); // часть Амины
         meta = connection.getMetaData();
-        supportsDatabaseAndSchema = meta.supportsCatalogsInDataManipulation() &&
-            meta.supportsSchemasInDataManipulation();
+        supportsSchema = meta.supportsSchemasInDataManipulation();
+
         return connection;
     }
 
@@ -63,7 +69,7 @@ public class Session {
             disconnect();
             connection = connect(info);
         } catch (SQLException e) {
-            throw new RuntimeException("Problems with connection");
+            throw new RuntimeException("Problems with connection: " + e.getMessage());
         }
     }
 
@@ -73,7 +79,7 @@ public class Session {
                 connection.close();
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Problems with disconnection");
+            throw new RuntimeException("Problems with disconnection: " + e.getMessage());
         }
     }
 
@@ -85,12 +91,12 @@ public class Session {
         }
     }
 
-    public boolean isSupportsDatabaseAndSchema() {
-        return supportsDatabaseAndSchema;
+    public boolean isSupportsSchema() {
+        return supportsSchema;
     }
 
     // Statements functions
-    // Это использовать для заранне подготовленных запросов (колонки и таблицы должны быть определены)
+    // Это использовать для заранее подготовленных запросов (колонки и таблицы должны быть определены)
     public PreparedStatement getPreparedStatement(String sql) {
         try {
             switch (connectionInfo.getConnectionType()) {
@@ -105,7 +111,7 @@ public class Session {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Can't get prepared statement: " + e.getMessage());
         }
     }
 
@@ -126,7 +132,7 @@ public class Session {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Can't get statement: " + e.getMessage());
         }
     }
 
@@ -157,7 +163,7 @@ public class Session {
 
             return new DataTable(columnNames, rows, rs, rowsGot, executionTime);
         } catch (SQLException e) {
-            throw new RuntimeException("Can't execute query for some reasons...");
+            throw new RuntimeException("Can't execute query to get data: " + e.getMessage());
         }
     }
 
@@ -169,7 +175,7 @@ public class Session {
         try {
             statement.executeUpdate(sql);
         } catch (SQLException e) {
-            throw new RuntimeException("Can't insert data");
+            throw new RuntimeException("Can't insert data: " + e.getMessage());
         }
     }
 
@@ -190,7 +196,7 @@ public class Session {
         try {
             statement.executeUpdate(sql);
         } catch (SQLException e) {
-            throw new RuntimeException("Can't delete data");
+            throw new RuntimeException("Can't delete data: " + e.getMessage());
         }
 
         dataTable.deleteRow(index);
@@ -209,8 +215,21 @@ public class Session {
         String id = dataTable.getRows().get(rowNumber).get(colIndex);
 
         String sql = "UPDATE " + tableName + " SET ";
-        for (int col : columnNumbers) {
-            sql += allColumns.get(col) + " = ?, ";
+
+        switch (connectionInfo.getConnectionType()) {
+            case SQLITE -> {
+                for (int col : columnNumbers) {
+                    sql += allColumns.get(col) + " = ?, ";
+                }
+            }
+            case POSTGRESQL -> {
+                int c = 1;
+                for (int col : columnNumbers) {
+                    sql += allColumns.get(col) + " = $" + c + ", ";
+                    c += 1;
+                }
+            }
+            default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
         }
         sql = sql.substring(0, sql.length() - 2) + " WHERE " + actualKey + " = " + "\'" + id + "\'" + ";";
 
@@ -221,7 +240,7 @@ public class Session {
             }
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Can't update data: " + e.getMessage());
         }
 
         dataTable.changeRow(rowNumber, columnNumbers, values);
@@ -257,7 +276,7 @@ public class Session {
         try {
             saveStatement.addBatch(sql);
         } catch (SQLException e) {
-            throw new RuntimeException("Something wrong happened while attempting to add new batch");
+            throw new RuntimeException("Can't add new batch (save changes): " + e.getMessage());
         }
     }
 
@@ -266,7 +285,7 @@ public class Session {
             saveStatement.executeBatch();
             connection.commit();
         } catch (SQLException e) {
-            throw new RuntimeException("Can't save changes");
+            throw new RuntimeException("Can't save changes: " + e.getMessage());
         }
     }
 
@@ -275,7 +294,7 @@ public class Session {
             saveStatement.clearBatch();
             connection.rollback();
         } catch (SQLException e) {
-            throw new RuntimeException("Can't discard changes");
+            throw new RuntimeException("Can't discard changes: " + e.getMessage());
         }
     }
 
@@ -296,6 +315,9 @@ public class Session {
     }
 
     // PGSQL
+
+    // Не используем так как в данной реализации используем только схему public
+    @Deprecated
     public List<Schema> getSchemas(String databaseName) {
         try {
             List<Schema> schemaList = new ArrayList<>();
@@ -314,7 +336,13 @@ public class Session {
         try {
             List<View> viewList = new ArrayList<>();
             Statement statement = getStatement();
-            ResultSet resultSet = statement.executeQuery("SELECT name, sql FROM sqlite_master WHERE type == \"view\"");
+            String query;
+            switch (connectionInfo.getConnectionType()) {
+                case POSTGRESQL -> query = "SELECT table_name AS name, view_definition AS sql FROM information_schema.views WHERE table_schema='public';";
+                case SQLITE -> query = "SELECT name, sql FROM sqlite_master WHERE type == \"view\"";
+                default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+            }
+            ResultSet resultSet = statement.executeQuery(query);
             while (resultSet.next()) {
                 viewList.add(new View(resultSet.getString("name"), resultSet.getString("sql")));
             }
@@ -329,9 +357,53 @@ public class Session {
         try {
             List<Table> tableList = new ArrayList<>();
             Statement statement = getStatement();
-            ResultSet resultSet = statement.executeQuery(
-                "SELECT name, sql FROM sqlite_master " +
-                    "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')");
+            String query;
+            switch (connectionInfo.getConnectionType()) {
+                case POSTGRESQL -> {
+                    String queryCreateFunction = "CREATE OR REPLACE FUNCTION pg_get_tabledef(tablename text) RETURNS text AS $$\n" +
+                            "DECLARE\n" +
+                            "    result text;\n" +
+                            "    col_result text;\n" +
+                            "    con_result text;\n" +
+                            "BEGIN\n" +
+                            "    SELECT string_agg(\n" +
+                            "                   '    ' || quote_ident(attname) || ' ' || format_type(atttypid, atttypmod) ||\n" +
+                            "                   CASE WHEN NOT attnotnull THEN ' NULL' ELSE '' END ||\n" +
+                            "                   CASE WHEN atthasdef THEN ' DEFAULT ' || pg_get_expr(adbin, adrelid) ELSE '' END,\n" +
+                            "                   E',\\n'\n" +
+                            "           )\n" +
+                            "    INTO col_result\n" +
+                            "    FROM pg_attribute\n" +
+                            "             LEFT JOIN pg_attrdef ON pg_attribute.attnum = pg_attrdef.adnum AND pg_attribute.attrelid = pg_attrdef.adrelid\n" +
+                            "    WHERE pg_attribute.attrelid = tablename::regclass\n" +
+                            "      AND pg_attribute.attnum > 0\n" +
+                            "      AND NOT pg_attribute.attisdropped;\n" +
+                            "    SELECT string_agg(\n" +
+                            "                   '    ' || pg_get_constraintdef(pg_constraint.oid), E',\\n'\n" +
+                            "           )\n" +
+                            "    INTO con_result\n" +
+                            "    FROM pg_constraint\n" +
+                            "    WHERE conrelid = tablename::regclass;\n" +
+                            "    result := 'CREATE TABLE ' || quote_ident(tablename) || E' (\\n' ||\n" +
+                            "              coalesce(col_result, '') ||\n" +
+                            "              CASE\n" +
+                            "                  WHEN col_result IS NOT NULL AND con_result IS NOT NULL THEN E',\\n'\n" +
+                            "                  ELSE ''\n" +
+                            "                  END ||\n" +
+                            "              coalesce(con_result, '') ||\n" +
+                            "              E'\\n);';\n" +
+                            "\n" +
+                            "    RETURN result;\n" +
+                            "END;\n" +
+                            "$$ LANGUAGE plpgsql;";
+                    query = "SELECT table_name as name, pg_get_tabledef(table_name) as sql FROM information_schema.tables WHERE table_schema='public' AND table_type <> 'VIEW';";
+                    statement.execute(queryCreateFunction);
+                }
+                case SQLITE -> query = "SELECT name, sql FROM sqlite_master " +
+                                        "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')";
+                default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+            }
+            ResultSet resultSet = statement.executeQuery(query);
             while (resultSet.next()) {
                 tableList.add(new Table(resultSet.getString("name"), resultSet.getString("sql")));
             }
@@ -346,9 +418,19 @@ public class Session {
         try {
             List<Index> indexList = new ArrayList<>();
             Statement statement = getStatement();
-            ResultSet resultSet = statement.executeQuery(
-                "SELECT name FROM sqlite_master " +
-                    "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')");
+            String query;
+            switch (connectionInfo.getConnectionType()) {
+                case POSTGRESQL -> {
+                    query = "SELECT table_name as name FROM information_schema.tables WHERE table_schema='public' AND table_type <> 'VIEW'";
+                }
+                case SQLITE -> {
+                    query = "SELECT name FROM sqlite_master " +
+                            "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')";
+                }
+                default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+            }
+
+            ResultSet resultSet = statement.executeQuery(query);
             while (resultSet.next()) {
                 indexList.addAll(getIndexes(resultSet.getString("name")));
             }
@@ -375,10 +457,41 @@ public class Session {
 
                 // Возможно убрать в отдельную функцию получение колонок
                 LinkedList<Column> columnLinkedList = new LinkedList<>();
-                ResultSet columnsNamesResultSet = statement.executeQuery("PRAGMA index_info('" + name + "')");
+                String queryGetColumnsForIndex;
+                switch (connectionInfo.getConnectionType()) {
+                    case POSTGRESQL -> {
+                        queryGetColumnsForIndex = "SELECT\n" +
+                                "    a.attname AS name\n" +
+                                "FROM\n" +
+                                "    pg_class t,\n" +
+                                "    pg_class i,\n" +
+                                "    pg_index ix,\n" +
+                                "    pg_attribute a,\n" +
+                                "    pg_namespace n\n" +
+                                "WHERE\n" +
+                                "    t.oid = ix.indrelid\n" +
+                                "  AND i.oid = ix.indexrelid\n" +
+                                "  AND a.attrelid = t.oid\n" +
+                                "  AND a.attnum = ANY(ix.indkey)\n" +
+                                "  AND t.relnamespace = n.oid\n" +
+                                "  AND n.nspname NOT IN ('pg_catalog', 'information_schema')\n" +
+                                "  AND i.relname = '" + name + "'\n" +
+                                "ORDER BY\n" +
+                                "    t.relname,\n" +
+                                "    i.relname,\n" +
+                                "    a.attnum;";
+                    }
+                    case SQLITE -> {
+                        queryGetColumnsForIndex = "PRAGMA index_info('" + name + "')";
+                    }
+                    default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+                }
+
+                ResultSet columnsNamesResultSet = statement.executeQuery(queryGetColumnsForIndex);
                 while (columnsNamesResultSet.next()) {
                     String columnName = columnsNamesResultSet.getString("name");
                     ResultSet columnsResultSet = meta.getColumns(null, null, tableName, columnName);
+                    columnsResultSet.next();
                     String dataType = columnsResultSet.getString("TYPE_NAME");
                     boolean notNull = columnsResultSet.getString("IS_NULLABLE").equals("YES");
                     boolean autoInc = columnsResultSet.getString("IS_AUTOINCREMENT").equals("YES");
@@ -517,5 +630,10 @@ public class Session {
         } catch (SQLException e) {
             return new DataTable(e.getMessage());
         }
+    }
+
+    @Deprecated
+    public DatabaseMetaData getMetaData() {
+        return meta;
     }
 }
