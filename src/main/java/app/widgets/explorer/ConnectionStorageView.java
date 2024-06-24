@@ -1,5 +1,6 @@
 package app.widgets.explorer;
 
+import app.IconLoader;
 import app.MainWindow;
 import app.api.ApiCalls;
 import app.api.data.responses.Datasource;
@@ -13,6 +14,7 @@ import io.qt.gui.QCursor;
 import io.qt.widgets.QMenu;
 import io.qt.widgets.QPushButton;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -64,6 +66,7 @@ public class ConnectionStorageView extends QPushButton {
         var conName = Objects.requireNonNull(popMenu.actionAt(point)).text();
         popMenu.removeAction(connectionList.get(conName));
         if (root.online) {
+            this.setText("");
             ApiCalls.deleteDataSource(datasources.get(conName), popMenu::close);
         }
         else {
@@ -95,6 +98,22 @@ public class ConnectionStorageView extends QPushButton {
         delete.triggered.connect(this::deleteConnection);
         contextMenu.addAction(delete);
         contextMenu.popup(QCursor.pos());
+    }
+
+    public void setIconActive() {
+        try {
+            setIcon(IconLoader.loadIconStatic("../active.png"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void setIconDisabled() {
+        try {
+            setIcon(IconLoader.loadIconStatic("../disabled.png"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

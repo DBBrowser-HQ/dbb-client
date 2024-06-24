@@ -320,31 +320,13 @@ public class Connection implements Serializable {
     }
 
     public void setTables() {
-        try {
-            List<Table> tableList = session.getTables();
-            schema.setTableList(tableList);
-        } catch (NullPointerException e) {
-            try {
-                sleep(50);
-            } catch (InterruptedException ex) {
-                throw new RuntimeException(ex);
-            }
-            setTables();
-        }
+        List<Table> tableList = session.getTables();
+        schema.setTableList(tableList);
     }
 
     public void setIndexes() {
-        try {
-            List<Index> indexList = session.getIndexes();
-            schema.setIndexList(indexList);
-        } catch (NullPointerException e) {
-            try {
-                sleep(50);
-            } catch (InterruptedException ex) {
-                throw new RuntimeException(ex);
-            }
-            setIndexes();
-        }
+        List<Index> indexList = session.getIndexes();
+        schema.setIndexList(indexList);
     }
 
     public void setIndexesFor(String tableName) {

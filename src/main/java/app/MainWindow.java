@@ -116,18 +116,18 @@ public class MainWindow extends QWidget {
         MyToolBar upButtonsBar = new MyToolBar();
         QPushButton selectFileButton = newButton("Connect to DB", menuController::connectToDBButtonClicked);
         upButtonsBar.addSeparator();
-        //if(!online) {
+        if(!online) {
             upButtonsBar.addWidgetAndSeparator(selectFileButton);
-        //}
+        }
         upButtonsBar.setOrientation(Qt.Orientation.Horizontal);
         QPushButton closeConnectionButton = newButton("Close connection", menuController::closeConnectionButtonClicked);
         QPushButton b1 = new QPushButton("Check tables");
-        b1.clicked.connect(this::printTable);
+        //b1.clicked.connect(this::printTable);
         //b1.setMenu(popMenu);
         QPushButton reconnectToDBButton = newButton("Reconnect to DB", menuController::reconnectToDBClicked);
         upButtonsBar.addWidgetAndSeparator(reconnectToDBButton);
         upButtonsBar.addWidgetAndSeparator(closeConnectionButton);
-        upButtonsBar.addWidgetAndSeparator(b1);
+        //upButtonsBar.addWidgetAndSeparator(b1);
         QPushButton reloadButton = new QPushButton();
         reloadButton.clicked.connect(this::reload);
         reloadButton.setBackgroundRole(QPalette.ColorRole.Light);
@@ -294,10 +294,7 @@ public class MainWindow extends QWidget {
     void update(boolean full) {
         if (full) {
             menuController.loadDatasources();
-
             setWindowTitle(UserDataRepository.currentCompany.second);
-            //new MainWindow(this.windowIcon(), online);
-            //this.close();
         }
         else {
             setWindowTitle(UserDataRepository.currentCompany.second);

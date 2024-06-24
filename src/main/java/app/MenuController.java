@@ -136,6 +136,12 @@ public class MenuController extends QObject {
 
     public void showSchema(String conName) throws IOException {
         var x = ConnectionController.getSchema(conName);
+        if (ConnectionController.isActive(conName)) {
+            root.connectionStorageView.setIconActive();
+        }
+        else {
+            root.connectionStorageView.setIconDisabled();
+        }
         root.treeViewMenu.setTreeModel(x, conName);
     }
 
@@ -144,6 +150,7 @@ public class MenuController extends QObject {
     }
 
     public void clearWorkArea() {
+        root.connectionStorageView.setIconDisabled();
         root.treeViewMenu.setEmptyModel();
         root.dbName.clear();
         root.dbInfo.clear();
@@ -197,8 +204,7 @@ public class MenuController extends QObject {
 
    public void newCurrentConnectionName(String conName) throws IOException {
         root.dbName.setText(conName);
-        root.dbInfo.setText("SQLite");
-
+        root.dbInfo.setText("PostreSQL");
         root.treeViewMenu.newCurrentConnectionName(conName);
         root.tableViewMainTab.clear();
         root.currentTableName.setText("");
@@ -272,10 +278,19 @@ public class MenuController extends QObject {
         else {
             root.treeViewMenu.setEmptyModel();
             root.connectionStorageView.clearDS();
-            ConnectionController.getAllConnections().forEach(ConnectionController::deleteCon);
             for (Datasource ds : datasources) {
                 root.connectionStorageView.addDatasource(ds);
-                ConnectionController.addConnection(ConnectionInfo.ConnectionType.POSTGRESQL, ds.name, Config.host, Config.proxyPort, UserDataRepository.accessToken, String.valueOf(ds.id));
+                if (StorageController.connectionStorage.getConnection(ds.name) == null) {
+                    ConnectionController.addConnection(ConnectionInfo.ConnectionType.POSTGRESQL, ds.name, Config.host, Config.proxyPort, UserDataRepository.accessToken, String.valueOf(ds.id));
+                }
+            }
+        }
+        var conName = root.connectionStorageView.getCurrentConnection();
+        if (ConnectionController.isActive(conName)) {
+            try {
+                root.treeViewMenu.setTreeModel(ConnectionController.getSchema(conName), conName);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
     }
