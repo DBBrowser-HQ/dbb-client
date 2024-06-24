@@ -9,6 +9,7 @@ import app.backend.entities.Schema;
 import app.backend.entities.Table;
 import app.backend.entities.View;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -81,7 +82,6 @@ public class TestPostgres {
         connection.setViews();
         List<View> views = schema.getViews();
         views.forEach(v -> System.out.println(v.getName() + " " + v.getDefinition()));
-
         Table table = schema.getTable("datasources");
         connection.setForeignKeysFor(table.getName());
         connection.setKeysFor(table.getName());
@@ -92,7 +92,7 @@ public class TestPostgres {
         table.getForeignKeys().forEach(System.out::println);
         table.getKeys().forEach(System.out::println);
 
-        // Необязательно, прокси умеет такое обходиить 😎
+        // Необязательно, прокси умеет такое обходиить
         // connection.disconnect();
     }
 }

@@ -1,0 +1,4 @@
+backendUrl = http://db-cloud.ru:8081
+host = db-cloud.ru
+proxyPort = 8082
+filePath = C:

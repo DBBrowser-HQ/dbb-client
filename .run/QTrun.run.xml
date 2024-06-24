@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="QTrun" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="Main" />
+    <module name="DBBrowser.main" />
+    <option name="VM_PARAMETERS" value="-Djava.library.path=C:\Qt\6.6.0\msvc2019_64\bin" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

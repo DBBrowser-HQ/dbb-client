@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+import static java.lang.Thread.sleep;
+
 public class MenuController extends QObject {
 
     public final MainWindow root;
@@ -118,18 +120,23 @@ public class MenuController extends QObject {
     }
 
     void fileChosen(String fileName) {
-        if (fileName.endsWith(".db")) {
-            StorageController.connectionStorage.removeConnection(fileName);
-            ConnectionController.addConnection(ConnectionInfo.ConnectionType.SQLITE, fileName);
+        if (root.online) {
+            StorageController.connectionStorage.getConnection(root.connectionStorageView.getCurrentConnection()).connect();
         }
         else {
-            new ErrorDialog("Chosen file is not a database file.");
+            if (fileName.endsWith(".db")) {
+                StorageController.connectionStorage.removeConnection(fileName);
+                ConnectionController.addConnection(ConnectionInfo.ConnectionType.SQLITE, fileName);
+            }
+            else {
+                new ErrorDialog("Chosen file is not a database file.");
+            }
         }
     }
 
     void showSchema(String conName) throws IOException {
-        root.treeViewMenu.setTreeModel(ConnectionController.getSchema(conName), conName);
-        System.out.println(ConnectionController.getSchema(conName));
+        var x = ConnectionController.getSchema(conName);
+        root.treeViewMenu.setTreeModel(x, conName);
     }
 
     void clearWorkArea() {
@@ -142,13 +149,22 @@ public class MenuController extends QObject {
     }
 
     void closeConnectionButtonClicked() {
-        ConnectionController.closeConnection(root.dbName.toPlainText());
+        ConnectionController.closeConnection(root.connectionStorageView.getCurrentConnection());
         clearWorkArea();
     }
 
     void reconnectToDBClicked() {
-        ConnectionController.reconnectConnection(root.connectionStorageView.getCurrentConnection());
-
+        try {
+            ConnectionController.reconnectConnection(root.connectionStorageView.getCurrentConnection());
+        }
+        catch (NullPointerException e) {
+            try {
+                sleep(50);
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+            reconnectToDBClicked();
+        }
     }
 
     void showDBInfo() {
@@ -241,7 +257,6 @@ public class MenuController extends QObject {
     }
 
     void settingsClicked() {
-        //this.setDisabled(true);
         new SettingsDialog(root.windowIcon(), () -> {loadDatasources(); updateRoot(true); root.setWindowTitle(UserDataRepository.currentCompany.second);}, this);
     }
 
@@ -258,8 +273,10 @@ public class MenuController extends QObject {
         else {
             root.treeViewMenu.setEmptyModel();
             root.connectionStorageView.clearDS();
+            ConnectionController.getAllConnections().forEach(ConnectionController::deleteCon);
             for (Datasource ds : datasources) {
                 root.connectionStorageView.addDatasource(ds);
+                ConnectionController.addConnection(ConnectionInfo.ConnectionType.POSTGRESQL, ds.name, Config.host, Config.proxyPort, UserDataRepository.accessToken, String.valueOf(ds.id));
             }
         }
     }

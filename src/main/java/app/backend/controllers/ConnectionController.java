@@ -30,26 +30,28 @@ public class ConnectionController {
         signaller.emitSignalToDBInfo();
     }
 
-    public static void addConnection(ConnectionInfo.ConnectionType type, String host, String port, String dbname, String login, String password) {
+    public static void addConnection(ConnectionInfo.ConnectionType type, String datasourceName, String host, String port, String accessToken, String datasourceId) {
         Map<String, String> map = new HashMap<>();
         map.put("host", host);
         map.put("port", port);
-        map.put("dbname", dbname);
-        map.put("username", login);
-        map.put("password", password);
+        map.put("accessToken", accessToken);
+        map.put("datasourceId", datasourceId);
         ConnectionInfo connectionInfo = new ConnectionInfo(type, map);
-        StorageController.connectionStorage.addConnectionToStorage(new Connection(dbname, connectionInfo));
-        signaller.emitSignalToAddConnectionName(dbname);
-        signaller.emitSignalToShowTree(dbname);
+        StorageController.connectionStorage.addConnectionToStorage(new Connection(datasourceName, connectionInfo));
+        signaller.emitSignalToAddConnectionName(datasourceName);
+        signaller.emitSignalToShowTree(datasourceName);
         signaller.emitSignalToDBInfo();
     }
 
     public static List<String> getSchema(String conName) {
         Connection connection = StorageController.connectionStorage.getConnection(conName);
         connection.setSchema();
-        connection.setTables();
+        connection.setIndexes();
+        //var t = new Thread(connection::setTables);
+        //t.start();
         return StorageController.connectionStorage.getConnection(conName).getSchema().getTableList();
     }
+
 
     public static String getDBInfo(String conName) {
         Connection connection = StorageController.connectionStorage.getConnection(conName);

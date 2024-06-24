@@ -112,7 +112,9 @@ public class MainWindow extends QWidget {
         MyToolBar upButtonsBar = new MyToolBar();
         QPushButton selectFileButton = newButton("Connect to DB", "connectToDBButtonClicked()");
         upButtonsBar.addSeparator();
-        upButtonsBar.addWidgetAndSeparator(selectFileButton);
+        //if(!online) {
+            upButtonsBar.addWidgetAndSeparator(selectFileButton);
+        //}
         upButtonsBar.setOrientation(Qt.Orientation.Horizontal);
         QPushButton closeConnectionButton = newButton("Close connection", "closeConnectionButtonClicked()");
         QPushButton b1 = new QPushButton("PopUp menu");

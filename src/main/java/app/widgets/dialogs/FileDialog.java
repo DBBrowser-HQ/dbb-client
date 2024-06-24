@@ -1,6 +1,6 @@
 package app.widgets.dialogs;
 
-import app.FilePath;
+import app.Config;
 import app.MenuController;
 import io.qt.core.QDir;
 import io.qt.widgets.QFileDialog;
@@ -16,7 +16,7 @@ public class FileDialog extends QFileDialog {
     private final Signal1<String> signalWithFilePath = new Signal1<>();
 
     public FileDialog(QWidget root) {
-        QDir dir = new QDir(FilePath.filePath);
+        QDir dir = new QDir(Config.filePath);
         this.setDirectory(dir);
         this.fileSelected.connect(this, "fileSelected()");
         connect(this, "signalWithFilePath(String)", root, "fileChosen(String)");
@@ -24,7 +24,7 @@ public class FileDialog extends QFileDialog {
     }
 
     public FileDialog(MenuController root) {
-        QDir dir = new QDir(FilePath.filePath);
+        QDir dir = new QDir(Config.filePath);
         this.setDirectory(dir);
         this.fileSelected.connect(this, "fileSelected()");
         connect(this, "signalWithFilePath(String)", root, "fileChosen(String)");

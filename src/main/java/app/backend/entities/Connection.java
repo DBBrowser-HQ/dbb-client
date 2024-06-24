@@ -5,6 +5,8 @@ import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 
+import static java.lang.Thread.sleep;
+
 public class Connection implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
@@ -26,6 +28,13 @@ public class Connection implements Serializable {
         this.name = name;
         this.connectionInfo = connectionInfo;
         connect();
+//        var t = new Thread(this::connect);
+//        t.start();
+//        try {
+//            sleep(1000);
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
     public void connect() {
@@ -290,13 +299,31 @@ public class Connection implements Serializable {
     }
 
     public void setTables() {
-        List<Table> tableList = session.getTables();
-        schema.setTableList(tableList);
+        try {
+            List<Table> tableList = session.getTables();
+            schema.setTableList(tableList);
+        } catch (NullPointerException e) {
+            try {
+                sleep(50);
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+            setTables();
+        }
     }
 
     public void setIndexes() {
-        List<Index> indexList = session.getIndexes();
-        schema.setIndexList(indexList);
+        try {
+            List<Index> indexList = session.getIndexes();
+            schema.setIndexList(indexList);
+        } catch (NullPointerException e) {
+            try {
+                sleep(50);
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+            setIndexes();
+        }
     }
 
     public void setIndexesFor(String tableName) {
