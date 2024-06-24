@@ -177,7 +177,7 @@ public class MainWindow extends QWidget {
         QToolBar footerBar = new QToolBar();
         footerBar.setOrientation(Qt.Orientation.Horizontal);
         QPushButton saveChangesButton = newButton("Save changes", menuController::saveChanges);
-        QPushButton discardChangesButton = newButton("Discard changes", menuController::discardChanges);
+        QPushButton discardChangesButton = newButton("Discard last change", menuController::discardChanges);
         footerBar.addWidget(saveChangesButton);
         footerBar.addWidget(discardChangesButton);
 

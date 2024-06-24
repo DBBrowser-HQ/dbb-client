@@ -1,6 +1,7 @@
 package app.widgets.dialogs;
 
 import app.MenuController;
+import app.backend.controllers.ConnectionController;
 import app.backend.controllers.StorageController;
 import app.widgets.MyToolBar;
 
@@ -9,9 +10,7 @@ import io.qt.core.Qt;
 import io.qt.gui.QIcon;
 import io.qt.widgets.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 
 public class CreateTableDialog extends Setting {
@@ -21,11 +20,19 @@ public class CreateTableDialog extends Setting {
     private final MyToolBar mainBar;
     private final QTableWidget columns;
     private final QScrollArea area;
+    private final List<String> tables;
+    private final Map<String, List<String>> fColumns;
 
 
     public CreateTableDialog(MenuController controller, QIcon icon) {
 
         this.controller = controller;
+        tables = ConnectionController.getSchema(controller.root.connectionStorageView.getCurrentConnection());
+        fColumns = new HashMap<>();
+        for (var t : tables) {
+            fColumns.put(t, ConnectionController.getColumns(controller.root.connectionStorageView.getCurrentConnection(), t));
+        }
+        this.setMinimumSize(900, 400);
         setWindowTitle("Create new table");
         setWindowIcon(icon);
         mainBar = new MyToolBar();
@@ -34,7 +41,7 @@ public class CreateTableDialog extends Setting {
         tableName.setMaximumHeight(27);
         mainBar.addWidget(tableName);
         mainBar.addWidget(new QLabel("Columns:"));
-        columns = new QTableWidget(1, 5);
+        columns = new QTableWidget(1, 8);
         columns.setHorizontalHeaderLabels(titles());
         columns.setSizePolicy(expandingSizePolicy());
         addColumnLine(true);
@@ -83,12 +90,20 @@ public class CreateTableDialog extends Setting {
         QCheckBox nullable = new QCheckBox();
         QCheckBox prKey = new QCheckBox();
         QTableWidgetItem defaultValue = new QTableWidgetItem();
+        QCheckBox fKey = new QCheckBox();
+        TypeButton fColumn = new TypeButton(fColumns);
+        TypeButton fTable = new TypeButton(tables, fColumn);
+
+
         var currentRow = columns.rowCount() - 1;
         columns.setItem(currentRow, 0, columnName);
         columns.setCellWidget(currentRow, 1, type);
         columns.setCellWidget(currentRow, 2, prKey);
         columns.setCellWidget(currentRow, 3, nullable);
         columns.setItem(currentRow, 4, defaultValue);
+        columns.setCellWidget(currentRow, 5, fKey);
+        columns.setCellWidget(currentRow, 6, fTable);
+        columns.setCellWidget(currentRow, 7, fColumn);
     }
 
     void addClicked() {
@@ -114,6 +129,9 @@ public class CreateTableDialog extends Setting {
         titles.add("Primary key");
         titles.add("Not null");
         titles.add("Default value");
+        titles.add("Foreign key");
+        titles.add("Parent table");
+        titles.add("Parent column");
         return titles;
     }
 
@@ -154,11 +172,23 @@ public class CreateTableDialog extends Setting {
                 assert nullBox != null;
                 boolean notNull = nullBox.getChecked();
                 String defaultValue = Objects.requireNonNull(columns.item(i, 4)).text();
+                var fBox = (QCheckBox) columns.cellWidget(i, 5);
+                assert fBox != null;
+                boolean fKey = fBox.getChecked();
+                var fTableB = (QPushButton) columns.cellWidget(i, 6);
+                assert fTableB != null;
+                String fTable = fTableB.text();
+                var fColumnB = (QPushButton) columns.cellWidget(i, 7);
+                assert fColumnB != null;
+                String fColumn = fColumnB.text();
 
                 con.getSchema().getTable(name).addColumn(columnName, translate(type), notNull, defaultValue);
 
                 if (pKey) {
                     con.getSchema().getTable(name).addKey(name + "_pkey", new ArrayList<>(List.of(columnName)));
+                }
+                if (fKey) {
+                    con.getSchema().getTable(name).addForeignKey(name + "_fkey", new ArrayList<>(List.of(columnName)), fTable, new ArrayList<>(List.of(fColumn)), "");
                 }
             }
 

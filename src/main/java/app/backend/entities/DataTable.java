@@ -39,7 +39,7 @@ public class DataTable {
     }
 
     public void deleteRow(int index) {
-//        getMoreRows(index+1);
+        //getMoreRows(index+1);
 //        System.out.println(rows.get(index));
         rows.remove(index);
     }

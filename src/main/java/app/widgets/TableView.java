@@ -101,7 +101,7 @@ public class TableView extends QTableView {
     void deleteRow() {
         var index = this.currentIndex();
         deleteRowSignal.emit(this.tableName, index.row());
-        dataTable.deleteRow(index.row());
+        dataTable.deleteRow(index.row()-1);
         myUpdate();
     }
 
