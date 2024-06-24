@@ -2,11 +2,9 @@ package app.backend.entities;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.sql.DatabaseMetaData;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 public class Connection implements Serializable {
     @Serial
@@ -42,7 +40,9 @@ public class Connection implements Serializable {
     }
 
     public void disconnect() {
-        session.disconnect();
+        if (session != null) {
+            session.disconnect();
+        }
         session = null;
         isConnected = false;
     }
@@ -128,7 +128,12 @@ public class Connection implements Serializable {
         или нет, решай сама
      */
     public void newTable(String tableName, String definition) {
-        schema.getTables().add(new Table(tableName, definition));
+        if(schema.getTable(tableName) == null){
+            schema.getTables().add(new Table(tableName, definition));
+        }
+        else{
+            throw new RuntimeException("Table " + tableName + " already exists");
+        }
     }
 
     public void createTable(String tableName) {
@@ -284,16 +289,20 @@ public class Connection implements Serializable {
     }
 
     public void saveChanges() {
-        commitIndexes();
-        commitViews();
+//        commitIndexes();
+//        commitViews();
         session.saveChanges();
     }
 
     public ArrayList<String> discardChanges() {
-        rollbackIndexes();
-        rollbackViews();
+//        rollbackIndexes();
+//        rollbackViews();
         Cancel cancel = session.discardChanges();
-        return new ArrayList<>(List.of(cancel.getTableName(), cancel.getIndex().toString()));
+        if (cancel == null){
+            return null;
+        }
+
+        return new ArrayList<>(List.of(cancel.getName(), cancel.getIndex().toString()));
     }
 
     @Deprecated
@@ -375,5 +384,21 @@ public class Connection implements Serializable {
                 ", session=" + session +
                 ", supportsDatabaseAndSchema=" + supportsSchema +
                 '}';
+    }
+
+    public void renameTable(String tableName, String newName){
+        session.updateTableName(tableName, newName);
+    }
+
+    public void renameColumn(String tableName, String oldName, String newName) {
+        session.updateColumnName(tableName, oldName, newName);
+    }
+
+    public void updateColumnComment(String tableName, String columnName, String comment) {
+        session.updateColumnComment(tableName, columnName, comment);
+    }
+
+    public void updateColumnType(String tableName, String columnName, String type) {
+        session.updateDataType(tableName, columnName, type);
     }
 }

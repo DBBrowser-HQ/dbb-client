@@ -17,11 +17,11 @@ public class TestPostgres {
         ConnectionStorage conn = new ConnectionStorage();
         Map<String, String> info = new HashMap<>();
 
-        info.put("host", "localhost");
-//        info.put("host", "db-cloud.ru");
+//        info.put("host", "localhost");
+        info.put("host", "db-cloud.ru");
         info.put("port", "8082");
         info.put("datasourceId", "1");
-        info.put("accessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkyMTM0ODQsImlhdCI6MTcxOTIwOTg4NCwidXNlcklkIjoxfQ.OxsYrWX6fZvxRNYNf-fslGma6TfJRQV_o7tSp9gGo1I");
+        info.put("accessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkyMjM0NTUsImlhdCI6MTcxOTIxOTg1NSwidXNlcklkIjoxfQ.5ZTzUg7Uy-6iRSXu5Odg6nv76uWS0S_2wjDXhjZ-DR0");
 
         ConnectionInfo connectionInfo = new ConnectionInfo(ConnectionInfo.ConnectionType.POSTGRESQL, info);
         String connectionName = "поставить сюда имя, соответствующее datasource'у, к которому подключаемся";
@@ -29,15 +29,15 @@ public class TestPostgres {
         conn.addConnectionToStorage(connection);
         System.out.println("connected");
 
-        DataTable dataTable = connection.executeQuery("SELECT * FROM example1;");
-        System.out.println(dataTable.getMessage());
-        System.out.println(dataTable.getColumnNames());
-        for (List<String> row : dataTable.getRows()) {
-            for (int i = 0; i < dataTable.getColumnNames().size(); i++) {
-                System.out.print(row.get(i) + " ");
-            }
-            System.out.println();
-        }
+//        DataTable dataTable = connection.executeQuery("SELECT * FROM example1;");
+//        System.out.println(dataTable.getMessage());
+//        System.out.println(dataTable.getColumnNames());
+//        for (List<String> row : dataTable.getRows()) {
+//            for (int i = 0; i < dataTable.getColumnNames().size(); i++) {
+//                System.out.print(row.get(i) + " ");
+//            }
+//            System.out.println();
+//        }
 
         // GET Tables
         Schema schema = connection.getSchema();

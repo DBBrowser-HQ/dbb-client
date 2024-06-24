@@ -128,4 +128,17 @@ public class Table {
         }
         this.indexList.add(new Index(name, unique, columnLinkedList));
     }
+
+    @Override
+    public String toString() {
+        return "Table{" +
+                "name='" + name + '\'' +
+                ", definition='" + definition + '\'' +
+                ", columnList=" + columnList +
+                ", indexList=" + indexList +
+                ", keyList=" + keyList +
+                ", foreignKeyList=" + foreignKeyList +
+                ", dataTable=" + dataTable +
+                '}';
+    }
 }
