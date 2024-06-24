@@ -21,7 +21,7 @@ public class TestPostgres {
 //        info.put("host", "db-cloud.ru");
         info.put("port", "8082");
         info.put("datasourceId", "1");
-        info.put("accessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkxODQxNDgsImlhdCI6MTcxOTE4MDU0OCwidXNlcklkIjoxfQ.gLL3RV6TXRU4iH1CAviQYVDv4jEatGQUamvsL-sTHV4");
+        info.put("accessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkyMTM0ODQsImlhdCI6MTcxOTIwOTg4NCwidXNlcklkIjoxfQ.OxsYrWX6fZvxRNYNf-fslGma6TfJRQV_o7tSp9gGo1I");
 
         ConnectionInfo connectionInfo = new ConnectionInfo(ConnectionInfo.ConnectionType.POSTGRESQL, info);
         String connectionName = "поставить сюда имя, соответствующее datasource'у, к которому подключаемся";
@@ -29,15 +29,15 @@ public class TestPostgres {
         conn.addConnectionToStorage(connection);
         System.out.println("connected");
 
-//        DataTable dataTable = connection.executeQuery("SELECT * FROM example1;");
-//        System.out.println(dataTable.getMessage());
-//        System.out.println(dataTable.getColumnNames());
-//        for (List<String> row : dataTable.getRows()) {
-//            for (int i = 0; i < dataTable.getColumnNames().size(); i++) {
-//                System.out.print(row.get(i) + " ");
-//            }
-//            System.out.println();
-//        }
+        DataTable dataTable = connection.executeQuery("SELECT * FROM example1;");
+        System.out.println(dataTable.getMessage());
+        System.out.println(dataTable.getColumnNames());
+        for (List<String> row : dataTable.getRows()) {
+            for (int i = 0; i < dataTable.getColumnNames().size(); i++) {
+                System.out.print(row.get(i) + " ");
+            }
+            System.out.println();
+        }
 
         // GET Tables
         Schema schema = connection.getSchema();
@@ -88,17 +88,23 @@ public class TestPostgres {
         // Get Views
         connection.setViews();
         List<View> views = schema.getViews();
-        views.forEach(v -> System.out.println(v.getName() + " " + v.getDefinition()));
+        views.forEach(v -> {
+            if (v != null) {
+                System.out.println(v.getName() + " " + v.getDefinition());
+            }
+        });
 
         Table table = schema.getTable("example1");
-        connection.setForeignKeysFor(table.getName());
-        connection.setKeysFor(table.getName());
-        connection.setColumnsFor(table.getName());
-        connection.setIndexesFor(table.getName());
-        table.getColumns().forEach(System.out::println);
-        table.getIndexes().forEach(System.out::println);
-        table.getForeignKeys().forEach(System.out::println);
-        table.getKeys().forEach(System.out::println);
+        if (table != null) {
+            connection.setForeignKeysFor(table.getName());
+            connection.setKeysFor(table.getName());
+            connection.setColumnsFor(table.getName());
+            connection.setIndexesFor(table.getName());
+            table.getColumns().forEach(System.out::println);
+            table.getIndexes().forEach(System.out::println);
+            table.getForeignKeys().forEach(System.out::println);
+            table.getKeys().forEach(System.out::println);
+        }
 
 //        // Create and delete of Index
 //        connection.deleteIndex("name_index", "example1");
@@ -110,7 +116,8 @@ public class TestPostgres {
 //        connection.createView("cool_view", "SELECT * FROM example1");
 //        connection.createView("cool_view1", "SELECT * FROM example");
 //        connection.saveChanges();
-        // Необязательно, прокси умеет такое обходить ╰(*°▽°*)╯
-        // connection.disconnect();
+
+//        // Необязательно, прокси умеет такое обходить ╰(*°▽°*)╯
+//         connection.disconnect();
     }
 }

@@ -123,6 +123,9 @@ public class Table {
                 }
             }
         }
+        if (columnList.size() != columnLinkedList.size()) {
+            throw new RuntimeException("Different column list sizes: columnList has nonexistent column name");
+        }
         this.indexList.add(new Index(name, unique, columnLinkedList));
     }
 }

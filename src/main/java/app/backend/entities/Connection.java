@@ -86,8 +86,8 @@ public class Connection implements Serializable {
     @Deprecated
     public Database getDatabase(String name) {
         return databaseList.stream()
-            .filter(element -> element.getName().equals(name))
-            .findFirst().orElse(null);
+                .filter(element -> element.getName().equals(name))
+                .findFirst().orElse(null);
     }
 
     @Deprecated
@@ -124,20 +124,23 @@ public class Connection implements Serializable {
         return session.executeQuery(sql, DEFAULT_ROWS_TO_GET);
     }
 
-    // TODO: Передавать сюда уже заполненный объект таблицы
+    /* TODO: Передавать сюда уже заполненный объект таблицы
+        или нет, решай сама
+     */
     public void newTable(String tableName, String definition) {
         schema.getTables().add(new Table(tableName, definition));
     }
 
-    public void createTable(String tableName){
-        for(Table table: schema.getTables()) {
-            if(table.getName().equals(tableName)) {
+    public void createTable(String tableName) {
+        for (Table table : schema.getTables()) {
+            if (table.getName().equals(tableName)) {
                 session.createTable(table);
+                return;
             }
         }
     }
 
-    public void dropTable(String tableName, boolean isExist, boolean cascade){
+    public void dropTable(String tableName, boolean isExist, boolean cascade) {
         session.dropTable(tableName, isExist, cascade);
         schema.getTables().removeIf(table -> table.getName().equals(tableName));
     }
@@ -286,7 +289,7 @@ public class Connection implements Serializable {
         session.saveChanges();
     }
 
-    public ArrayList<String>  discardChanges() {
+    public ArrayList<String> discardChanges() {
         rollbackIndexes();
         rollbackViews();
         Cancel cancel = session.discardChanges();

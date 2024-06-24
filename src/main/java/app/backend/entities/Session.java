@@ -56,8 +56,8 @@ public class Session {
                 pgSimpleDataSource.setPortNumbers(new int[]{Integer.parseInt(props.get("port"))});
                 pgSimpleDataSource.setDatabaseName(props.get("datasourceId"));
                 pgSimpleDataSource.setSslmode("disable");
-                pgSimpleDataSource.setTcpKeepAlive(true);
-                pgSimpleDataSource.setTcpNoDelay(true);
+//                pgSimpleDataSource.setTcpKeepAlive(true);
+//                pgSimpleDataSource.setTcpNoDelay(true);
 
                 connection = pgSimpleDataSource.getConnection();
             }
@@ -422,9 +422,7 @@ public class Session {
                             "END;\n" +
                             "$$ LANGUAGE plpgsql;";
                     query = "SELECT table_name as name, pg_get_tabledef(table_name) as sql FROM information_schema.tables WHERE table_schema='public' AND table_type <> 'VIEW';";
-                    System.out.println("1");
                     statement.execute(queryCreateFunction);
-                    System.out.println("2");
                 }
                 case SQLITE -> query = "SELECT name, sql FROM sqlite_master " +
                         "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')";
