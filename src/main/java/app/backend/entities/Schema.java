@@ -69,4 +69,14 @@ public class Schema {
     public void setIndexList(List<Index> indexList) {
         this.indexList = indexList;
     }
+
+    @Override
+    public String toString() {
+        return "Schema{" +
+                "name='" + name + '\'' +
+                ", tableList=" + tableList +
+                ", viewList=" + viewList +
+                ", indexList=" + indexList +
+                '}';
+    }
 }

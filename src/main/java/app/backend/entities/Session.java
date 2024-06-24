@@ -3,9 +3,6 @@ package app.backend.entities;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.sqlite.SQLiteDataSource;
 
-import javax.sql.DataSource;
-import javax.swing.plaf.nimbus.State;
-
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -56,8 +53,9 @@ public class Session {
                 pgSimpleDataSource.setPortNumbers(new int[]{Integer.parseInt(props.get("port"))});
                 pgSimpleDataSource.setDatabaseName(props.get("datasourceId"));
                 pgSimpleDataSource.setSslmode("disable");
-//                pgSimpleDataSource.setTcpKeepAlive(true);
-//                pgSimpleDataSource.setTcpNoDelay(true);
+                // Если будут проблемы убрать
+                pgSimpleDataSource.setTcpKeepAlive(true);
+                pgSimpleDataSource.setTcpNoDelay(true);
 
                 connection = pgSimpleDataSource.getConnection();
             }
@@ -182,7 +180,7 @@ public class Session {
         Statement statement = getStatement();
         try {
             Savepoint savepoint = connection.setSavepoint();
-            savepoints.add(new Cancel(savepoint, tableName, 0));
+            savepoints.add(new Cancel(savepoint, tableName, Cancel.CancelType.TABLE, 0));
             statement.executeUpdate(sql);
 
         } catch (SQLException e) {
@@ -206,7 +204,7 @@ public class Session {
         Statement statement = getStatement();
         try {
             Savepoint savepoint = connection.setSavepoint();
-            savepoints.add(new Cancel(savepoint, tableName, 0));
+            savepoints.add(new Cancel(savepoint, tableName, Cancel.CancelType.TABLE, 0));
             statement.executeUpdate(sql);
 
         } catch (SQLException e) {
@@ -243,7 +241,8 @@ public class Session {
                     c += 1;
                 }
             }
-            default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+            default ->
+                    throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
         }
         sql = sql.substring(0, sql.length() - 2) + " WHERE " + actualKey + " = " + "\'" + id + "\'" + ";";
 
@@ -253,7 +252,7 @@ public class Session {
                 preparedStatement.setString(i + 1, values.get(i));
             }
             Savepoint savepoint = connection.setSavepoint();
-            savepoints.add(new Cancel(savepoint, tableName, rowNumber));
+            savepoints.add(new Cancel(savepoint, tableName, Cancel.CancelType.TABLE, rowNumber));
             preparedStatement.executeUpdate();
 
         } catch (SQLException e) {
@@ -271,27 +270,61 @@ public class Session {
         sql += "INDEX IF NOT EXISTS " + indexName + " ON " + tableName;
         String columns = columnsNames.stream().reduce("", (x, y) -> x + ", " + y).substring(2);
         sql += " (" + columns + ");";
-        updateSaveStatement(sql);
+
+        Statement statement = getStatement();
+        try {
+            Savepoint savepoint = connection.setSavepoint();
+            savepoints.add(new Cancel(savepoint, indexName, Cancel.CancelType.INDEX, 0));
+            statement.executeUpdate(sql);
+        } catch (SQLException e) {
+            throw new RuntimeException("Can't create index: " + e.getMessage());
+        }
+//        updateSaveStatement(sql);
     }
 
     public void deleteIndex(String indexName) {
         String sql = "DROP INDEX IF EXISTS " + indexName + ";";
-        updateSaveStatement(sql);
+        Statement statement = getStatement();
+        try {
+            Savepoint savepoint = connection.setSavepoint();
+            savepoints.add(new Cancel(savepoint, "", Cancel.CancelType.DELETED, 0));
+            statement.executeUpdate(sql);
+        } catch (SQLException e) {
+            throw new RuntimeException("Can't drop index: " + e.getMessage());
+        }
+//        updateSaveStatement(sql);
     }
 
     public void createView(String viewName, String sql) {
         String query;
         switch (connectionInfo.getConnectionType()) {
-            case SQLITE ->  query = "CREATE VIEW IF NOT EXISTS " + viewName + " AS " + sql + ";";
+            case SQLITE -> query = "CREATE VIEW IF NOT EXISTS " + viewName + " AS " + sql + ";";
             case POSTGRESQL -> query = "CREATE OR REPLACE VIEW " + viewName + " AS " + sql + ";";
-            default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+            default ->
+                    throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
         }
-        updateSaveStatement(query);
+        Statement statement = getStatement();
+        try {
+            Savepoint savepoint = connection.setSavepoint();
+            savepoints.add(new Cancel(savepoint, viewName, Cancel.CancelType.VIEW, 0));
+            statement.executeUpdate(sql);
+        } catch (SQLException e) {
+            throw new RuntimeException("Can't drop index: " + e.getMessage());
+        }
+//        updateSaveStatement(query);
     }
 
     public void deleteView(String viewName) {
         String sql = "DROP VIEW IF EXISTS " + viewName + ";";
-        updateSaveStatement(sql);
+        Statement statement = getStatement();
+        try {
+            Savepoint savepoint = connection.setSavepoint();
+            savepoints.add(new Cancel(savepoint, "", Cancel.CancelType.DELETED, 0));
+            statement.executeUpdate(sql);
+        } catch (SQLException e) {
+            throw new RuntimeException("Can't drop index: " + e.getMessage());
+        }
+//        updateSaveStatement(sql);
     }
 
     public void updateSaveStatement(String sql) {
@@ -304,7 +337,7 @@ public class Session {
 
     public void saveChanges() {
         try {
-            saveStatement.executeBatch();
+//            saveStatement.executeBatch();
             connection.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Can't save changes: " + e.getMessage());
@@ -313,7 +346,7 @@ public class Session {
 
     public Cancel discardChanges() {
         try {
-            saveStatement.clearBatch();
+//            saveStatement.clearBatch();
             if (savepoints.isEmpty() || savepoints.size() == 1) {
                 connection.rollback();
                 return null;
@@ -363,9 +396,11 @@ public class Session {
             Statement statement = getStatement();
             String query;
             switch (connectionInfo.getConnectionType()) {
-                case POSTGRESQL -> query = "SELECT table_name AS name, view_definition AS sql FROM information_schema.views WHERE table_schema='public';";
+                case POSTGRESQL ->
+                        query = "SELECT table_name AS name, view_definition AS sql FROM information_schema.views WHERE table_schema='public';";
                 case SQLITE -> query = "SELECT name, sql FROM sqlite_master WHERE type == \"view\"";
-                default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+                default ->
+                        throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
             }
             ResultSet resultSet = statement.executeQuery(query);
             while (resultSet.next()) {
@@ -426,7 +461,8 @@ public class Session {
                 }
                 case SQLITE -> query = "SELECT name, sql FROM sqlite_master " +
                         "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')";
-                default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+                default ->
+                        throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
             }
             ResultSet resultSet = statement.executeQuery(query);
             while (resultSet.next()) {
@@ -452,7 +488,8 @@ public class Session {
                     query = "SELECT name FROM sqlite_master " +
                             "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')";
                 }
-                default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+                default ->
+                        throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
             }
 
             ResultSet resultSet = statement.executeQuery(query);
@@ -509,7 +546,8 @@ public class Session {
                     case SQLITE -> {
                         queryGetColumnsForIndex = "PRAGMA index_info('" + name + "')";
                     }
-                    default -> throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+                    default ->
+                            throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
                 }
 
                 ResultSet columnsNamesResultSet = statement.executeQuery(queryGetColumnsForIndex);
@@ -659,7 +697,9 @@ public class Session {
 
     public void createTable(Table table) {
         StringBuilder sql = new StringBuilder("CREATE TABLE IF NOT EXISTS " + table.getName() + " (");
+        boolean f = false;
         for (Column column : table.getColumns()) {
+            f = true;
             sql.append(column.getName()).append(" ").append(column.getDataType());
             if (column.isNotNull()) {
                 sql.append(" NOT NULL");
@@ -668,48 +708,65 @@ public class Session {
         }
 
         for (Index index : table.getIndexes()) {
+            f = true;
             sql.append("CONSTRAINT ").append(index.getName()).append(" UNIQUE (");
             for (Column column : index.getColumnLinkedList()) {
                 sql.append(column.getName()).append(", ");
             }
-            sql.setLength(sql.length() - 2);
+            if(index.getColumnLinkedList().size() > 0) {
+                sql.setLength(sql.length() - 2);
+            }
+
             sql.append("),\n");
         }
 
         for (Key key : table.getKeys()) {
+            f = true;
             sql.append("CONSTRAINT ").append(key.getName()).append(" PRIMARY KEY (");
             for (String column : key.getColumns()) {
                 sql.append(column).append(", ");
             }
-            sql.setLength(sql.length() - 2);
+            if(!key.getColumns().isEmpty()) {
+                sql.setLength(sql.length() - 2);
+            }
             sql.append("),\n");
         }
 
         for (ForeignKey foreignKey : table.getForeignKeys()) {
+            f = true;
             sql.append("CONSTRAINT ").append(foreignKey.getName()).append(" FOREIGN KEY (");
             for (String childColumn : foreignKey.getChildColumns()) {
                 sql.append(childColumn).append(", ");
             }
-            sql.setLength(sql.length() - 2);
+            if(!foreignKey.getChildColumns().isEmpty()) {
+                sql.setLength(sql.length() - 2);
+            }
             sql.append(") REFERENCES ").append(foreignKey.getParentTable()).append(" (");
             for (String parentColumn : foreignKey.getParentColumns()) {
                 sql.append(parentColumn).append(", ");
             }
-            sql.setLength(sql.length() - 2);
+            if(!foreignKey.getParentColumns().isEmpty()) {
+                sql.setLength(sql.length() - 2);
+            }
+
             sql.append(") ");
             if (!Objects.equals(foreignKey.getOnDeleteAction(), "")) {
                 sql.append("ON DELETE ").append(foreignKey.getOnDeleteAction());
             }
             sql.append(",\n");
         }
-        sql.setLength(sql.length() - 2);
+        if (f) {
+            sql.setLength(sql.length() - 2);
+        }
 
-        sql.append(");");
+
+        sql.append(");\n");
+
         Statement statement = getStatement();
         System.out.println(sql);
         try {
             Savepoint savepoint = connection.setSavepoint();
-            savepoints.add(new Cancel(savepoint, table.getName(), 0));
+            savepoints.add(new Cancel(savepoint, table.getName(), Cancel.CancelType.TABLE, 0));
             statement.executeUpdate(sql.toString());
         } catch (SQLException e) {
             throw new RuntimeException("Error creating table: " + e.getMessage());
@@ -726,13 +783,71 @@ public class Session {
             sql.append(" CASCADE");
         }
         sql.append(";\n");
+
         Statement statement = getStatement();
         try {
             Savepoint savepoint = connection.setSavepoint();
-            savepoints.add(new Cancel(savepoint, "", 0));
+            savepoints.add(new Cancel(savepoint, "", Cancel.CancelType.DELETED, 0));
             statement.executeUpdate(sql.toString());
         } catch (SQLException e) {
             throw new RuntimeException("Error drop table", e);
+        }
+    }
+
+    public void updateTableName(Table table, String newName) {
+        StringBuilder sql = new StringBuilder("ALTER TABLE ").append(table.getName())
+                .append("\tRENAME TO ").append(newName)
+                .append(";\n");
+        Statement statement = getStatement();
+        try {
+            Savepoint savepoint = connection.setSavepoint();
+            savepoints.add(new Cancel(savepoint, table.getName(), Cancel.CancelType.TABLE, 0));
+            statement.executeUpdate(sql.toString());
+            table.setName(newName);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error rename table", e);
+        }
+    }
+
+    public void updateColumnName(String table, String oldName, String newName) {
+        StringBuilder sql = new StringBuilder("ALTER TABLE ").append(table).append("\n");
+        sql.append("\tRENAME COLUMN ").append(oldName).append(" TO ").append(newName).append(";\n");
+        Statement statement = getStatement();
+        try {
+            Savepoint savepoint = connection.setSavepoint();
+            savepoints.add(new Cancel(savepoint, table, Cancel.CancelType.TABLE, 0));
+            statement.executeUpdate(sql.toString());
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error rename column", e);
+        }
+    }
+
+    public void updateColumnComment(String tableName, String columnName, String comment) {
+        StringBuilder sql = new StringBuilder("COMMENT ON COLUMN ")
+                .append(tableName).append(".").append(columnName)
+                .append(" is '").append(comment).append("';\n");
+        Statement statement = getStatement();
+        try {
+            Savepoint savepoint = connection.setSavepoint();
+            savepoints.add(new Cancel(savepoint, tableName, Cancel.CancelType.TABLE, 0));
+            statement.executeUpdate(sql.toString());
+        } catch (SQLException e) {
+            throw new RuntimeException("Error change comment", e);
+        }
+    }
+
+    public void updateDataType(String tableName, String columnName, String dataType) {
+        StringBuilder sql = new StringBuilder("ALTER TABLE ").append(tableName).append("\n");
+        sql.append("\tALTER COLUMN ").append(columnName).append(" type ").append(dataType)
+                .append(" USING ").append(columnName).append(":").append(dataType).append(";\n");
+        Statement statement = getStatement();
+        try {
+            Savepoint savepoint = connection.setSavepoint();
+            savepoints.add(new Cancel(savepoint, tableName, Cancel.CancelType.TABLE, 0));
+            statement.executeUpdate(sql.toString());
+        } catch (SQLException e) {
+            throw new RuntimeException("Error change data type", e);
         }
     }
 

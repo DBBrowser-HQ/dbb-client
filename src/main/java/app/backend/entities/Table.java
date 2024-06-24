@@ -22,6 +22,10 @@ public class Table {
         this.foreignKeyList = new ArrayList<>();
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public DataTable getDataTable() {
         return dataTable;
     }
@@ -127,5 +131,18 @@ public class Table {
             throw new RuntimeException("Different column list sizes: columnList has nonexistent column name");
         }
         this.indexList.add(new Index(name, unique, columnLinkedList));
+    }
+
+    @Override
+    public String toString() {
+        return "Table{" +
+                "name='" + name + '\'' +
+                ", definition='" + definition + '\'' +
+                ", columnList=" + columnList +
+                ", indexList=" + indexList +
+                ", keyList=" + keyList +
+                ", foreignKeyList=" + foreignKeyList +
+                ", dataTable=" + dataTable +
+                '}';
     }
 }

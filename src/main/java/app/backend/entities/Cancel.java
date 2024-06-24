@@ -4,12 +4,21 @@ import java.sql.Savepoint;
 
 public class Cancel {
     private final Savepoint savepoint;
-    private final String tableName;
+    private final String name;
+    private final CancelType type;
     private final Integer index;
 
-    public Cancel(Savepoint savepoint, String tableName, Integer index) {
+    public enum CancelType {
+        TABLE,
+        INDEX,
+        VIEW,
+        DELETED
+    }
+
+    public Cancel(Savepoint savepoint, String name, CancelType type, Integer index) {
         this.savepoint = savepoint;
-        this.tableName = tableName;
+        this.name = name;
+        this.type = type;
         this.index = index;
     }
 
@@ -17,8 +26,12 @@ public class Cancel {
         return savepoint;
     }
 
-    public String getTableName() {
-        return tableName;
+    public CancelType getType() {
+        return type;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public Integer getIndex() {
