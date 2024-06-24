@@ -794,16 +794,16 @@ public class Session {
         }
     }
 
-    public void updateTableName(String tableName, String newName) {
-        StringBuilder sql = new StringBuilder("ALTER TABLE ").append(tableName)
+    public void updateTableName(Table table, String newName) {
+        StringBuilder sql = new StringBuilder("ALTER TABLE ").append(table.getName())
                 .append("\tRENAME TO ").append(newName)
                 .append(";\n");
         Statement statement = getStatement();
         try {
             Savepoint savepoint = connection.setSavepoint();
-            savepoints.add(new Cancel(savepoint, newName, Cancel.CancelType.TABLE, 0));
+            savepoints.add(new Cancel(savepoint, table.getName(), Cancel.CancelType.TABLE, 0));
             statement.executeUpdate(sql.toString());
-
+            table.setName(newName);
         } catch (SQLException e) {
             throw new RuntimeException("Error rename table", e);
         }

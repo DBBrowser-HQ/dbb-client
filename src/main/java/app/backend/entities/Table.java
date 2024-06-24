@@ -22,6 +22,10 @@ public class Table {
         this.foreignKeyList = new ArrayList<>();
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public DataTable getDataTable() {
         return dataTable;
     }

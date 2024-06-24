@@ -414,7 +414,7 @@ public class Connection implements Serializable {
     }
 
     public void renameTable(String tableName, String newName){
-        session.updateTableName(tableName, newName);
+        session.updateTableName(schema.getTable(tableName), newName);
     }
 
     public void renameColumn(String tableName, String oldName, String newName) {
