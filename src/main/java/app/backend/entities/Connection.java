@@ -62,9 +62,6 @@ public class Connection implements Serializable {
 
     public void setConnectionInfo(ConnectionInfo connectionInfo) {
         this.connectionInfo = connectionInfo;
-        this.session.reconnect(connectionInfo);
-        this.isConnected = session.isConnected();
-        this.supportsSchema = session.isSupportsSchema();
         setSchema();
     }
 
