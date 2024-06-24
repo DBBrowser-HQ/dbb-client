@@ -125,7 +125,7 @@ public class TableView extends QTableView {
     public String getLastId() {
         while (dataTable.getMoreRows(100)) {}
         try {
-            return dataTable.getRows().get(dataTable.getRows().size()).get(0);
+            return dataTable.getRows().get(dataTable.getRows().size() - 1).get(0);
         } catch (IndexOutOfBoundsException e) {
             return String.valueOf(0);
         }

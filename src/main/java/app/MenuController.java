@@ -6,6 +6,7 @@ import app.api.data.responses.Datasource;
 import app.backend.controllers.ConnectionController;
 import app.backend.controllers.StorageController;
 import app.backend.entities.ConnectionInfo;
+import app.backend.entities.ConnectionStorage;
 import app.backend.entities.DataTable;
 import app.backend.utility.Saver;
 import app.widgets.dialogs.*;
@@ -289,7 +290,6 @@ public class MenuController extends QObject {
         try {
             if (ConnectionController.isActive(conName)) {
                 try {
-                    //root.treeViewMenu.setTreeModel(ConnectionController.getSchema(conName), conName);
                     this.newCurrentConnectionName(conName);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -303,6 +303,7 @@ public class MenuController extends QObject {
 
     public void close() {
         ApiCalls.logout();
+        StorageController.connectionStorage.disconnectAll();
         root.close();
     }
 
