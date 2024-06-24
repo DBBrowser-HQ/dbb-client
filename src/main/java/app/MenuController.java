@@ -286,13 +286,19 @@ public class MenuController extends QObject {
             }
         }
         var conName = root.connectionStorageView.getCurrentConnection();
-        if (ConnectionController.isActive(conName)) {
-            try {
-                root.treeViewMenu.setTreeModel(ConnectionController.getSchema(conName), conName);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+        try {
+            if (ConnectionController.isActive(conName)) {
+                try {
+                    //root.treeViewMenu.setTreeModel(ConnectionController.getSchema(conName), conName);
+                    this.newCurrentConnectionName(conName);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
+        } catch (NullPointerException e) {
+            root.connectionStorageView.setIconDisabled();
         }
+
     }
 
     public void close() {

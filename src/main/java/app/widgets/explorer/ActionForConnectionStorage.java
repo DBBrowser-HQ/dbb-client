@@ -23,12 +23,16 @@ public class ActionForConnectionStorage extends QAction {
     void triggered() {
         String conName = this.getText();
         root.setText(conName);
-        if (StorageController.connectionStorage.getConnection(conName).isConnected()) {
-            clickedSignal.emit(conName);
-        }
-        else {
+        try {
+            if (StorageController.connectionStorage.getConnection(conName).isConnected()) {
+                clickedSignal.emit(conName);
+            } else {
+                clickedOnDisconnectedSignal.emit();
+            }
+        } catch (NullPointerException e) {
             clickedOnDisconnectedSignal.emit();
         }
+
     }
 
 }
