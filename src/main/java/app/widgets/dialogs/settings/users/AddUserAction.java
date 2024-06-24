@@ -15,9 +15,7 @@ public class AddUserAction extends QAction {
         try {
             this.triggered.connect(root, "selected()");
         } catch (QNoSuchSlotException ignored) {
-
         }
-
     }
 
     void clicked() {

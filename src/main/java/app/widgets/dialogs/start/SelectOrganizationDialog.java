@@ -37,4 +37,10 @@ public class SelectOrganizationDialog extends StartDialog {
         return sizePolicy;
     }
 
+    @Override
+    void cancelClicked() {
+        new OnlineStartDialog(windowIcon());
+        this.close();
+    }
+
 }
