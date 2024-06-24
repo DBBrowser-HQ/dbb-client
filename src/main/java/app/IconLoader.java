@@ -23,4 +23,12 @@ public class IconLoader {
         return icon;
     }
 
+    public static QIcon loadIconStatic(String name) throws IOException {
+        QPixmap pixmap = new QPixmap();
+        pixmap.loadFromData(Objects.requireNonNull(IconLoader.class.getResourceAsStream(name)).readAllBytes());
+        QIcon icon = new QIcon();
+        icon.addPixmap(pixmap);
+        return icon;
+    }
+
 }

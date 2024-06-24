@@ -29,15 +29,15 @@ public class UsersDialog extends QDialog {
         initContextMenu();
         QGridLayout layout = new QGridLayout();
         users.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu);
-        users.customContextMenuRequested.connect(this, "contextMenuRequested()");
+        users.customContextMenuRequested.connect(this::contextMenuRequested);
         users.setSizePolicy(expandingSizePolicy());
         users.setShowGrid(true);
         layout.addWidget(users);
         QPushButton addUser = new QPushButton("Invite user");
-        addUser.clicked.connect(this, "addUserClicked()");
+        addUser.clicked.connect(this::addUserClicked);
         layout.addWidget(addUser);
         QPushButton cancel = new QPushButton("Cancel");
-        cancel.clicked.connect(this, "cancelClicked()");
+        cancel.clicked.connect(this::cancelClicked);
         layout.addWidget(cancel);
         this.setLayout(layout);
         getUsers();
@@ -53,8 +53,8 @@ public class UsersDialog extends QDialog {
     }
 
     private void prepareSignals() {
-        signalOk.connect(this, "showUsers(List)");
-        signalErr.connect(this, "error(String)");
+        signalOk.connect(this::showUsers);
+        signalErr.connect(this::error);
     }
 
     void error(String error) {
@@ -69,11 +69,11 @@ public class UsersDialog extends QDialog {
         contextMenu = new QMenu();
 
         QAction connect = new QAction("Change role");
-        connect.triggered.connect(this, "changeRole()");
+        connect.triggered.connect(this::changeRole);
         contextMenu.addAction(connect);
 
         QAction rename = new QAction("Delete");
-        rename.triggered.connect(this, "deleteUser()");
+        rename.triggered.connect(this::deleteUser);
         contextMenu.addAction(rename);
     }
 

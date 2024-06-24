@@ -134,12 +134,16 @@ public class MenuController extends QObject {
         }
     }
 
-    void showSchema(String conName) throws IOException {
+    public void showSchema(String conName) throws IOException {
         var x = ConnectionController.getSchema(conName);
         root.treeViewMenu.setTreeModel(x, conName);
     }
 
-    void clearWorkArea() {
+    public void addTable() {
+        new CreateTableDialog(this, root.windowIcon());
+    }
+
+    public void clearWorkArea() {
         root.treeViewMenu.setEmptyModel();
         root.dbName.clear();
         root.dbInfo.clear();
@@ -154,33 +158,28 @@ public class MenuController extends QObject {
     }
 
     void reconnectToDBClicked() {
+        StorageController.connectionStorage.getConnection(root.connectionStorageView.getCurrentConnection()).connect();
         try {
-            ConnectionController.reconnectConnection(root.connectionStorageView.getCurrentConnection());
-        }
-        catch (NullPointerException e) {
-            try {
-                sleep(50);
-            } catch (InterruptedException ex) {
-                throw new RuntimeException(ex);
-            }
-            reconnectToDBClicked();
+            newCurrentConnectionName(root.connectionStorageView.getCurrentConnection());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    void showDBInfo() {
+    public void showDBInfo() {
 
         String list = ConnectionController.getDBInfo(root.dbName.toPlainText());
         root.dbInfo.setText(list);
     }
 
-    void newConnectionName(String name) {
+    public void newConnectionName(String name) {
         root.dbName.setText(name);
         root.tableViewMainTab.clear();
         root.connectionStorageView.addConnection(name);
         Saver.saveConnectionStorage(StorageController.connectionStorage);
     }
 
-    void setTableDataView(DataTable table, String tableName) {
+    public void setTableDataView(DataTable table, String tableName) {
         root.tableViewMainTab.setTableView(table, tableName);
         root.showTableViewButtons();
         root.currentTableName.setText(tableName);
@@ -196,7 +195,7 @@ public class MenuController extends QObject {
 
     }
 
-   void newCurrentConnectionName(String conName) throws IOException {
+   public void newCurrentConnectionName(String conName) throws IOException {
         root.dbName.setText(conName);
         root.dbInfo.setText("SQLite");
 
@@ -206,7 +205,7 @@ public class MenuController extends QObject {
         showSchema(conName);
    }
 
-   void deleteConnection(String conName) {
+   public void deleteConnection(String conName) {
 
    }
 

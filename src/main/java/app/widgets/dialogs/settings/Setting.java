@@ -1,5 +1,6 @@
 package app.widgets.dialogs.settings;
 
+import io.qt.core.QMetaObject;
 import io.qt.widgets.QDialog;
 import io.qt.widgets.QGridLayout;
 import io.qt.widgets.QPushButton;
@@ -10,13 +11,13 @@ public abstract class Setting extends QDialog {
     protected final Signal1<String> mainSignal = new Signal1<>();
 
 
-    protected QPushButton newButton(String text, String signal) {
+    protected QPushButton newButton(String text, QMetaObject.Slot0 signal) {
         QPushButton button = new QPushButton(text);
-        button.clicked.connect(this, signal);
+        button.clicked.connect(signal);
         return button;
     }
 
-    void cancelClicked() {
+    protected void cancelClicked() {
         this.close();
     }
 

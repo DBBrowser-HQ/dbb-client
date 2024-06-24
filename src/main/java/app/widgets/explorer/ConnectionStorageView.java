@@ -32,7 +32,7 @@ public class ConnectionStorageView extends QPushButton {
         this.setText("Current connection");
         popMenu = new QMenu("Current connection");
         popMenu.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu);
-        popMenu.customContextMenuRequested.connect(this, "contextMenu(QPoint)");
+        popMenu.customContextMenuRequested.connect(this::contextMenu);
         this.setMenu(popMenu);
     }
 
@@ -92,11 +92,9 @@ public class ConnectionStorageView extends QPushButton {
             content = "Delete connection";
         }
         QAction delete = new QAction(content);
-        delete.triggered.connect(this, "deleteConnection()");
+        delete.triggered.connect(this::deleteConnection);
         contextMenu.addAction(delete);
         contextMenu.popup(QCursor.pos());
     }
-
-
 
 }

@@ -23,8 +23,8 @@ public class ChangePasswordDialog extends Setting {
         mainBar.addWidget(passwordNew);
         MyToolBar buttonsBar = new MyToolBar();
         buttonsBar.setOrientation(Qt.Orientation.Horizontal);
-        buttonsBar.addWidgetAndSeparator(newButton("Cancel", "cancelClicked()"));
-        buttonsBar.addWidget(newButton("Approve", "approveClicked()"));
+        buttonsBar.addWidgetAndSeparator(newButton("Cancel", this::cancelClicked));
+        buttonsBar.addWidget(newButton("Approve", this::approveClicked));
         mainBar.addWidget(buttonsBar);
         setLayoutAndShow(mainBar);
     }

@@ -1,10 +1,13 @@
 package app.widgets.explorer;
 
 import app.IconLoader;
+import app.MenuController;
 import app.backend.controllers.ConnectionController;
 import io.qt.core.QModelIndex;
 import io.qt.core.QStringListModel;
+import io.qt.core.Qt;
 import io.qt.gui.*;
+import io.qt.widgets.QMenu;
 import io.qt.widgets.QTreeView;
 
 import java.io.IOException;
@@ -24,9 +27,11 @@ public class TreeMenu extends QTreeView {
     private QStandardItemModel dbModel;
     private final QStringListModel emptyModel;
     private final QStringListModel emptyModelOnline;
-    public final Signal0 signal0 = new Signal0();
+    private final QMenu menu = new QMenu();
+    private final MenuController controller;
 
-    public TreeMenu() {
+    public TreeMenu(MenuController controller) {
+        this.controller = controller;
         this.setMinimumWidth(300);
         emptyModel = new QStringListModel();
         List<String> emptyTreeMessage = new ArrayList<>();
@@ -38,13 +43,26 @@ public class TreeMenu extends QTreeView {
         emptyTreeMessageOnline.add("You can create a new datasource in \nSettings -> Management -> \nright click on organization -> Create datasource");
         emptyModelOnline.setStringList(emptyTreeMessageOnline);
         dbModel = new QStandardItemModel();
+        initMenu();
         //this.doubleClicked.connect(this, "treeClicked()");
-
-        this.collapsed.connect(this, "collapse1(QModelIndex)");
-        this.expanded.connect(this, "expanded1(QModelIndex)");
+        this.collapsed.connect(this::collapse1);
+        this.expanded.connect(this::expanded1);
+    }
+    void customMenu() {
+        if (dbModel.data(currentIndex()).toString().equals("Tables")) {
+            menu.popup(QCursor.pos());
+        }
     }
 
-    public void setTreeModel(List<String> stringList, String conName) throws IOException {
+    private void initMenu() {
+        this.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu);
+        this.customContextMenuRequested.connect(this::customMenu);
+        QAction addTable = new QAction("Add table");
+        addTable.triggered.connect(controller::addTable);
+        menu.addAction(addTable);
+    }
+
+    public void setTreeModel(List<String> tablesList, String conName) throws IOException {
         dbModel = new QStandardItemModel();
         QStandardItem invisibleRootItem = dbModel.invisibleRootItem();
         assert invisibleRootItem != null;
@@ -61,7 +79,7 @@ public class TreeMenu extends QTreeView {
         invisibleRootItem.appendRow(indexes);
         invisibleRootItem.appendRow(views);
 
-        for (String i : stringList) {
+        for (String i : tablesList) {
             QStandardItem item = new QStandardItem(i);
             item.setEditable(false);
             item.setChild(0, new QStandardItem());
@@ -83,7 +101,7 @@ public class TreeMenu extends QTreeView {
         }
 
         this.setModel(dbModel);
-        this.doubleClicked.connect(this, "treeClicked(QModelIndex)");
+        this.doubleClicked.connect(this::treeClicked);
 
     }
 

@@ -32,8 +32,8 @@ public class ChangeUserRoleDialog extends Setting {
         mainBar.addWidget(userRole);
         MyToolBar buttonsBar = new MyToolBar();
         buttonsBar.setOrientation(Qt.Orientation.Horizontal);
-        buttonsBar.addWidgetAndSeparator(newButton("Submit", "approveClicked()"));
-        buttonsBar.addWidget(newButton("Cancel", "cancelClicked()"));
+        buttonsBar.addWidgetAndSeparator(newButton("Submit", this::approveClicked));
+        buttonsBar.addWidget(newButton("Cancel", this::cancelClicked));
         mainBar.addWidget(buttonsBar);
         setLayoutAndShow(mainBar);
 

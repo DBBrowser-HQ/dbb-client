@@ -23,8 +23,8 @@ public class CreateOrganizationDialog extends Setting {
         mainBar.addWidget(name);
         MyToolBar buttonsBar = new MyToolBar();
         buttonsBar.setOrientation(Qt.Orientation.Horizontal);
-        buttonsBar.addWidgetAndSeparator(newButton("Submit", "approveClicked()"));
-        buttonsBar.addWidget(newButton("Cancel", "cancelClicked()"));
+        buttonsBar.addWidgetAndSeparator(newButton("Submit", this::approveClicked));
+        buttonsBar.addWidget(newButton("Cancel", this::cancelClicked));
         mainBar.addWidget(buttonsBar);
         setLayoutAndShow(mainBar);
     }
@@ -35,7 +35,7 @@ public class CreateOrganizationDialog extends Setting {
         name.setMaximumHeight(27);
     }
 
-    void approveClicked() {
+    protected void approveClicked() {
         if (!name.toPlainText().equals("")) {
             ApiCalls.createOrganization(mainSignal, name.toPlainText());
             this.close();

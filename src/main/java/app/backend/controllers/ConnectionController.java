@@ -47,8 +47,7 @@ public class ConnectionController {
         Connection connection = StorageController.connectionStorage.getConnection(conName);
         connection.setSchema();
         connection.setIndexes();
-        //var t = new Thread(connection::setTables);
-        //t.start();
+        connection.setTables();
         return StorageController.connectionStorage.getConnection(conName).getSchema().getTableList();
     }
 

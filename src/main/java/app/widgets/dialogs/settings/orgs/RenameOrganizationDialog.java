@@ -16,7 +16,7 @@ public class RenameOrganizationDialog extends CreateOrganizationDialog{
     }
 
     @Override
-    void approveClicked() {
+    protected void approveClicked() {
         if (!name.toPlainText().equals("")) {
             ApiCalls.renameOrganization(mainSignal, id, name.toPlainText());
             this.close();

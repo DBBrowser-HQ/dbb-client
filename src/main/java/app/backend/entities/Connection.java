@@ -31,13 +31,6 @@ public class Connection implements Serializable {
         this.name = name;
         this.connectionInfo = connectionInfo;
         connect();
-//        var t = new Thread(this::connect);
-//        t.start();
-//        try {
-//            sleep(1000);
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
     }
 
     public void connect() {

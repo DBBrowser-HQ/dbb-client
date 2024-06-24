@@ -14,12 +14,12 @@ public class Signaller extends QObject {
     private final Signal1<String> signalDeleteConnection = new Signal1<>();
 
     public Signaller(MenuController controller) {
-        signalToShowTree.connect(controller, "showSchema(String)");
-        signalToHideTree.connect(controller, "clearWorkArea()");
-        signalToShowDBInfo.connect(controller, "showDBInfo()");
-        signalNewConnectionName.connect(controller, "newConnectionName(String)");
-        signalGetTableData.connect(controller, "setTableDataView(DataTable, String)");
-        signalDeleteConnection.connect(controller, "deleteConnection(String)");
+        signalToShowTree.connect(controller::showSchema);
+        signalToHideTree.connect(controller::clearWorkArea);
+        signalToShowDBInfo.connect(controller::showDBInfo);
+        signalNewConnectionName.connect(controller::newConnectionName);
+        signalGetTableData.connect(controller::setTableDataView);
+        signalDeleteConnection.connect(controller::deleteConnection);
     }
 
     public void emitSignalToShowTree(String dbName) {

@@ -13,7 +13,7 @@ public class ApproveDeleteDialog extends QDialog {
     public ApproveDeleteDialog(QWidget root, String text, Runnable action) {
         this.action = action;
         this.root = root;
-        this.finished.connect(this, "enableControl()");
+        this.finished.connect(this::enableControl);
         this.setWindowFlag(WindowStaysOnTopHint);
         QLabel label = new QLabel("Are you sure you want to delete " + text + "?");
         this.setWindowTitle("Approve action");
@@ -21,10 +21,10 @@ public class ApproveDeleteDialog extends QDialog {
         checkBox.setText("Yes");
 
         QPushButton applyButton = new QPushButton("Approve");
-        applyButton.clicked.connect(this, "applyClicked()");
+        applyButton.clicked.connect(this::applyClicked);
 
         QPushButton abortButton = new QPushButton("Abort");
-        abortButton.clicked.connect(this, "abortClicked()");
+        abortButton.clicked.connect(this::abortClicked);
 
         QLayout layout = new QGridLayout(this);
         layout.addWidget(label);

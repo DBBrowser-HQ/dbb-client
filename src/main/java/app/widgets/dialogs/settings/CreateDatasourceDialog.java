@@ -17,7 +17,8 @@ public class CreateDatasourceDialog extends CreateOrganizationDialog {
         this.id = id;
     }
 
-    void approveClicked() {
+    @Override
+    protected void approveClicked() {
         if (!name.toPlainText().equals("")) {
             ApiCalls.createDataSource(mainSignal, id, name.toPlainText());
             this.close();

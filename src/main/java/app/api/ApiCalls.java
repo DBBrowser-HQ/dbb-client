@@ -190,6 +190,7 @@ public class ApiCalls {
     public static void createDataSource(QObject.Signal1<String> callback, int id, String name) {
 
         var service = getUserService();
+        System.out.println("Create DS: " + name);
 
         service.createDatasource("Bearer " + UserDataRepository.accessToken, id, new CreateDatasource(name)).enqueue(new Callback<>() {
             @Override

@@ -37,10 +37,10 @@ public class Management extends MyToolBar {
         addWidget(new QLabel("Your companies:"));
         addWidget(getCompanies());
         QPushButton addCompanyButton = new QPushButton("+");
-        addCompanyButton.clicked.connect(this, "addCompanyClicked()");
+        addCompanyButton.clicked.connect(this::addCompanyClicked);
         addWidget(addCompanyButton);
         this.setSizePolicy(expandingSizePolicy());
-        comps.doubleClicked.connect(this, "connect(QModelIndex)");
+        comps.doubleClicked.connect(this::connect1);
         comps.setSizePolicy(expandingSizePolicy());
         comps.setShowGrid(true);
         comps.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu);
@@ -62,15 +62,15 @@ public class Management extends MyToolBar {
         contextMenu = new QMenu();
 
         QAction connect = new QAction("Connect");
-        connect.triggered.connect(this, "connect()");
+        connect.triggered.connect(this::connect);
         contextMenu.addAction(connect);
 
         QAction rename = new QAction("Rename");
-        rename.triggered.connect(this, "rename()");
+        rename.triggered.connect(this::rename);
         contextMenu.addAction(rename);
 
         QAction createDatasource = new QAction("Create datasource");
-        createDatasource.triggered.connect(this, "createDatasource()");
+        createDatasource.triggered.connect(this::createDatasource);
         contextMenu.addAction(createDatasource);
 
 //        QAction deleteDatasource = new QAction("Delete datasource");
@@ -78,15 +78,15 @@ public class Management extends MyToolBar {
 //        contextMenu.addAction(deleteDatasource);
 
         QAction addUser = new QAction("Add user");
-        addUser.triggered.connect(this, "addUser()");
+        addUser.triggered.connect(this::addUser);
         contextMenu.addAction(addUser);
 
         QAction users = new QAction("Manage users");
-        users.triggered.connect(this, "users()");
+        users.triggered.connect(this::users);
         contextMenu.addAction(users);
 
         QAction deleteOrg = new QAction("Delete organization");
-        deleteOrg.triggered.connect(this, "deleteOrganization()");
+        deleteOrg.triggered.connect(this::deleteOrganization);
         contextMenu.addAction(deleteOrg);
     }
 
@@ -95,7 +95,7 @@ public class Management extends MyToolBar {
     }
 
     void connect() {
-        connect(this.comps.currentIndex());
+        connect1(this.comps.currentIndex());
     }
 
     void rename() {
@@ -161,7 +161,7 @@ public class Management extends MyToolBar {
         comps.setModel(data);
     }
 
-    void connect(QModelIndex index) {
+    void connect1(QModelIndex index) {
         try {
             UserDataRepository.currentCompany = new QPair<>(getCurrentId(), comps.model().data(index.row(), 0).toString());
         }

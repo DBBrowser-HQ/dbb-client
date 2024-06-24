@@ -15,9 +15,9 @@ public class ActionForConnectionStorage extends QAction {
         this.root = root;
         clickedSignal = new Signal1<>();
         clickedOnDisconnectedSignal = new Signal0();
-        clickedSignal.connect(controller, "newCurrentConnectionName(String)");
-        clickedOnDisconnectedSignal.connect(controller, "clearWorkArea()");
-        this.triggered.connect(this, "triggered()");
+        clickedSignal.connect(controller::newCurrentConnectionName);
+        clickedOnDisconnectedSignal.connect(controller::clearWorkArea);
+        this.triggered.connect(this::triggered);
     }
 
     void triggered() {

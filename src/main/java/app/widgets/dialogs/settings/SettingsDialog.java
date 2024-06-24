@@ -22,9 +22,9 @@ public class SettingsDialog extends Setting {
             UserDataRepository.logOut(); new OnlineStartDialog(windowIcon());
         });
         Management managementTab = new Management(() -> {callback.run(); this.close();});
-        tabs.addTab(accountTab, "Account");
         tabs.addTab(managementTab, "Management");
-        QPushButton cancelButton = newButton("Cancel", "cancelClicked()");
+        tabs.addTab(accountTab, "Account");
+        QPushButton cancelButton = newButton("Cancel", this::cancelClicked);
         QToolBar mainBar = new QToolBar();
         mainBar.setOrientation(Qt.Orientation.Vertical);
         mainBar.addWidget(tabs);
@@ -34,7 +34,7 @@ public class SettingsDialog extends Setting {
         buttonsBar.addWidget(cancelButton);
         mainBar.addWidget(buttonsBar);
         this.setLayoutAndShow(mainBar);
-        this.finished.connect(this, "fullUpdate()");
+        this.finished.connect(this::fullUpdate);
     }
 
     void fullUpdate() {

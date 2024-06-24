@@ -2,6 +2,7 @@ package app.widgets;
 
 import app.MenuController;
 import app.backend.entities.DataTable;
+import app.backend.entities.Index;
 import io.qt.core.QModelIndex;
 import io.qt.core.Qt;
 import io.qt.gui.QAction;
@@ -123,7 +124,12 @@ public class TableView extends QTableView {
 
     public String getLastId() {
         while (dataTable.getMoreRows(100)) {}
-        return dataTable.getRows().get(dataTable.getRows().size() - 1).get(0);
+        try {
+            return dataTable.getRows().get(dataTable.getRows().size()).get(0);
+        } catch (IndexOutOfBoundsException e) {
+            return String.valueOf(0);
+        }
+
     }
 
     public void changeRowsToLoadNumber(int number) {
