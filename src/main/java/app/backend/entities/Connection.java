@@ -294,6 +294,7 @@ public class Connection implements Serializable {
 //        commitIndexes();
 //        commitViews();
         session.saveChanges();
+
     }
 
     public ArrayList<String> discardChanges() {
