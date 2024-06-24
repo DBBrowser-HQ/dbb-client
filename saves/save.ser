@@ -1,0 +1,4 @@
+�� sr &app.backend.entities.ConnectionStorage        L connectionListt Ljava/util/List;xpsr java.util.ArrayListx����a� I sizexp   w   sr app.backend.entities.Connection        Z supportsSchemaL connectionInfot %Lapp/backend/entities/ConnectionInfo;L namet Ljava/lang/String;xpsr #app.backend.entities.ConnectionInfo        L connectionTypet 4Lapp/backend/entities/ConnectionInfo$ConnectionType;L
+propertiest Ljava/util/Map;L propertiesNamesq ~ xp~r 2app.backend.entities.ConnectionInfo$ConnectionType          xr java.lang.Enum          xpt
+POSTGRESQLsr java.util.HashMap���`� F
+loadFactorI 	thresholdxp?@     w      t portt 8082t hostt db-cloud.rut datasourceIdt 2t accessTokent �eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkyMTkzODIsImlhdCI6MTcxOTIxNTc4MiwidXNlcklkIjoyfQ.SjtKL_KSoyIXGqRcsRC4tsDyuPTLSQ8hWwtYCB3r1ecxsq ~    w   q ~ q ~ q ~ q ~ xt DataSource1x
