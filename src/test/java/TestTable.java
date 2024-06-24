@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class TestTable {
     public static void main(String[] args) {
-        String accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkyMTM0ODQsImlhdCI6MTcxOTIwOTg4NCwidXNlcklkIjoxfQ.OxsYrWX6fZvxRNYNf-fslGma6TfJRQV_o7tSp9gGo1I";
+        String accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkyMzYxNzYsImlhdCI6MTcxOTIzMjU3NiwidXNlcklkIjoxfQ.ZlYn227g4-iIJsFKyhEI9nlHeJf59V4vXxEigS3LS_w";
         String datasourceId = "1";
         Connection connection = createConnection("1", datasourceId, accessToken);
         System.out.println(connection.isConnected());
@@ -21,12 +21,14 @@ public class TestTable {
         connection.setTables();
         System.out.println(schema.getName());
         System.out.println(schema.getTableList());
-
+        System.out.println(connection.getSchema().getTable("table1"));
+        connection.dropTable("amina", true, false);
+        connection.dropTable("th", true, false);
+        connection.dropTable("table1", true, false);
         connection.newTable("amina", "let's go");
 
         connection.getSchema().getTable("amina")
                 .addColumn("ticket_no", "bpchar(13)", true, "");
-
         connection.getSchema().getTable("amina")
                 .addColumn("flight_id", "int4", true, "");
 
@@ -50,13 +52,38 @@ public class TestTable {
 
         connection.createTable("amina");
 
-        System.out.println(connection.getSchema().getTableList());
+        System.out.println("create" + connection.getSchema().getTableList());
 
+        connection.newTable("th", "ffg");
+        connection.createTable("th");
+        connection.setTables();
+        connection.setColumnsFor("amina");
+        System.out.println("create2" + connection.getSchema().getTableList());
         connection.dropTable("amina", false, false);
+        connection.setTables();
+        System.out.println("drop" + connection.getSchema().getTableList());
 
-        System.out.println(connection.getSchema().getTableList());
+        connection.discardChanges();
+        connection.setTables();
+        connection.setColumnsFor("amina");
+        System.out.println("discard" + connection.getSchema().getTableList());
 
+        connection.renameColumn("amina", "seat_no", "jkd");
+        connection.setTables();
+        connection.setColumnsFor("amina");
+        System.out.println(connection.getSchema().getTable("amina").toString());
+
+        connection.renameTable("amina", "table1");
+        connection.setTables();
+        connection.setColumnsFor("table1");
+        System.out.println(connection.getSchema().getTable("table1").toString());
+
+        connection.createIndex("my_index", "table1", true, List.of("jkd"));
         connection.saveChanges();
+
+        connection.setIndexesFor("table1");
+        System.out.println(schema.getIndexes());
+        connection.disconnect();
     }
 
     public static Connection createConnection(String name, String datasourceId, String accessToken) {
