@@ -214,6 +214,20 @@ public class Session {
         dataTable.deleteRow(index);
     }
 
+    private List<Integer> getColumnTypes(String tableName, List<Integer> columnNumbers) {
+        List<Integer> columnTypes = new ArrayList<>();
+        String query = "SELECT * FROM " + tableName + " LIMIT 1";
+        try (Statement stmt = getStatement(); ResultSet rs = stmt.executeQuery(query)) {
+            ResultSetMetaData metaData = rs.getMetaData();
+            for (int col : columnNumbers) {
+                columnTypes.add(metaData.getColumnType(col + 1)); // ResultSetMetaData columns are 1-based
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error retrieving column types", e);
+        }
+        return columnTypes;
+    }
+
     public void updateData(String tableName, DataTable dataTable, int rowNumber, List<Integer> columnNumbers, List<String> values) {
         List<Key> keys = getKeys(tableName);
         List<String> keyColumns = new ArrayList<>();
@@ -224,33 +238,38 @@ public class Session {
 
         String actualKey = allColumns.stream().filter(keyColumns::contains).findFirst().orElse(null);
         int colIndex = allColumns.indexOf(actualKey);
+        if (colIndex == -1) {
+            colIndex = columnNumbers.get(columnNumbers.size() - 1);
+        }
+        if (actualKey == null) {
+            actualKey = allColumns.get(colIndex);
+        }
         String id = dataTable.getRows().get(rowNumber).get(colIndex);
+
+        List<Integer> l = new ArrayList<>(columnNumbers);
+        l.add(colIndex);
+        List<Integer> columnTypes = getColumnTypes(tableName, l);
 
         String sql = "UPDATE " + tableName + " SET ";
 
         switch (connectionInfo.getConnectionType()) {
-            case SQLITE -> {
+            case SQLITE, POSTGRESQL -> {
                 for (int col : columnNumbers) {
                     sql += allColumns.get(col) + " = ?, ";
                 }
-            }
-            case POSTGRESQL -> {
-                int c = 1;
-                for (int col : columnNumbers) {
-                    sql += allColumns.get(col) + " = $" + c + ", ";
-                    c += 1;
-                }
+                sql = sql.substring(0, sql.length() - 2) + " WHERE " + actualKey + " = ?;";
             }
             default ->
                     throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
         }
-        sql = sql.substring(0, sql.length() - 2) + " WHERE " + actualKey + " = " + "\'" + id + "\'" + ";";
-        System.out.println(sql);
+
         PreparedStatement preparedStatement = getPreparedStatement(sql);
         try {
             for (int i = 0; i < values.size(); i++) {
-                preparedStatement.setString(i + 1, values.get(i));
+                preparedStatement.setObject(i + 1, values.get(i), columnTypes.get(i));
             }
+            preparedStatement.setObject(values.size() + 1, id, columnTypes.get(colIndex));
+
             Savepoint savepoint = connection.setSavepoint();
             savepoints.add(new Cancel(savepoint, tableName, Cancel.CancelType.TABLE, rowNumber));
             preparedStatement.executeUpdate();

@@ -84,4 +84,16 @@ public class DataTable {
     public String getMessage() {
         return message;
     }
+
+    @Override
+    public String toString() {
+        return "DataTable{" +
+                "columnNames=" + columnNames +
+                ", rows=" + rows +
+                ", rowsCount=" + rowsCount +
+                ", executionTime=" + executionTime +
+                ", message='" + message + '\'' +
+                ", resultSet=" + resultSet +
+                '}';
+    }
 }

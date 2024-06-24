@@ -5,6 +5,7 @@ import app.api.UserDataRepository;
 import app.api.data.responses.Datasource;
 import app.backend.controllers.ConnectionController;
 import app.backend.controllers.StorageController;
+import app.backend.entities.Connection;
 import app.backend.entities.ConnectionInfo;
 import app.backend.entities.ConnectionStorage;
 import app.backend.entities.DataTable;
@@ -18,7 +19,9 @@ import io.qt.widgets.QMessageBox;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.lang.Thread.sleep;
 
@@ -166,7 +169,20 @@ public class MenuController extends QObject {
     }
 
     void reconnectToDBClicked() {
-        StorageController.connectionStorage.getConnection(root.connectionStorageView.getCurrentConnection()).connect();
+        Connection connection =  StorageController.connectionStorage.getConnection(root.connectionStorageView.getCurrentConnection());
+        if (connection.getConnectionInfo().getConnectionType() == ConnectionInfo.ConnectionType.POSTGRESQL) {
+            ConnectionInfo connectionInfo = connection.getConnectionInfo();
+            Map<String, String> info = connectionInfo.getProperties();
+            String accessToken = UserDataRepository.accessToken;
+            Map<String, String> newInfo = new HashMap<>();
+            newInfo.put("accessToken", accessToken);
+            newInfo.put("host", info.get("host"));
+            newInfo.put("port", info.get("port"));
+            newInfo.put("datasourceId", info.get("datasourceId"));
+            ConnectionInfo newConnectionInfo = new ConnectionInfo(connectionInfo.getConnectionType(), newInfo);
+            connection.setConnectionInfo(newConnectionInfo);
+        }
+        connection.connect();
         try {
             newCurrentConnectionName(root.connectionStorageView.getCurrentConnection());
         } catch (IOException e) {
