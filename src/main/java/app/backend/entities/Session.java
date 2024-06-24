@@ -339,6 +339,7 @@ public class Session {
         try {
 //            saveStatement.executeBatch();
             connection.commit();
+            savepoints.clear();
         } catch (SQLException e) {
             throw new RuntimeException("Can't save changes: " + e.getMessage());
         }
