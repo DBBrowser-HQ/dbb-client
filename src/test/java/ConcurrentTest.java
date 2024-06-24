@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class ConcurrentTest {
     public static void main(String[] args) {
-        String accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkxNzM2MTIsImlhdCI6MTcxOTE3MDAxMiwidXNlcklkIjoyfQ.CEKZMvr_5Mt4KdZSLBvwgIdk4OK7zZIXUlWID6o8rsM";
+        String accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkxODA0OTMsImlhdCI6MTcxOTE3Njg5MywidXNlcklkIjoyfQ.caiXnLguEZzxhSXdD0m5O26zA_LB3CGgcmfiVD11YlM";
         String datasourceId1 = "3";
         String datasourceId2 = "4";
 
@@ -21,8 +21,8 @@ public class ConcurrentTest {
 
         DataTable dataTable2 = connection2.executeQuery("SELECT current_database()");
         showDataTable(dataTable2);
-//        connection1.disconnect();
-//        connection2.disconnect();
+        connection1.disconnect();
+        connection2.disconnect();
     }
 
     public static Connection createConnection(String name, String datasourceId, String accessToken) {

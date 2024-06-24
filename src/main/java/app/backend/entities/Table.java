@@ -1,5 +1,7 @@
 package app.backend.entities;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class Table {
@@ -14,6 +16,10 @@ public class Table {
     public Table(String name, String definition) {
         this.name = name;
         this.definition = definition;
+        this.columnList = new ArrayList<>();
+        this.indexList = new ArrayList<>();
+        this.keyList = new ArrayList<>();
+        this.foreignKeyList = new ArrayList<>();
     }
 
     public DataTable getDataTable() {
@@ -88,11 +94,38 @@ public class Table {
         return foreignKeyList.stream().map(ForeignKey::getName).toList();
     }
 
-    public ForeignKey getForeignKey(String foreignKeyName) {
-        return foreignKeyList.stream().filter(x -> x.getName().equals(foreignKeyName)).findFirst().orElse(null);
-    }
-
     public List<ForeignKey> getForeignKeys() {
         return foreignKeyList;
+    }
+
+    public void addColumn(String columnName, String dataType, boolean notNull, String defaultDefinition) {
+        Column column = new Column(columnName, dataType, notNull, false, defaultDefinition);
+        this.columnList.add(column);
+    }
+
+    public void addKey(String name, ArrayList<String> columns) {
+        Key key = new Key(name, columns);
+        this.keyList.add(key);
+
+    }
+
+    public void addForeignKey(String name, ArrayList<String> childColumns, String parentTable, ArrayList<String> parentColumns, String onDeleteAction) {
+        this.foreignKeyList.add(new ForeignKey(name, childColumns, parentTable, parentColumns, onDeleteAction));
+
+    }
+
+    public void addIndex(String name, boolean unique, ArrayList<String> columnList) {
+        LinkedList<Column> columnLinkedList = new LinkedList<>();
+        for (String col : columnList) {
+            for (Column column : this.columnList) {
+                if (column.getName().equals(col)) {
+                    columnLinkedList.add(column);
+                }
+            }
+        }
+        if (columnList.size() != columnLinkedList.size()) {
+            throw new RuntimeException("Different column list sizes: columnList has nonexistent column name");
+        }
+        this.indexList.add(new Index(name, unique, columnLinkedList));
     }
 }

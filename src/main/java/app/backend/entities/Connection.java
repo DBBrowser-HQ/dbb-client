@@ -2,9 +2,11 @@ package app.backend.entities;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.sql.DatabaseMetaData;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 public class Connection implements Serializable {
     @Serial
@@ -36,11 +38,6 @@ public class Connection implements Serializable {
         this.session = new Session(connectionInfo);
         this.isConnected = session.isConnected();
         this.supportsSchema = session.isSupportsSchema();
-//        if (supportsSchema) {
-//            setDatabaseList();
-//        } else {
-//            setSchema();
-//        }
         setSchema();
     }
 
@@ -54,11 +51,6 @@ public class Connection implements Serializable {
         session.reconnect(connectionInfo);
         this.isConnected = session.isConnected();
         this.supportsSchema = session.isSupportsSchema();
-//        if (supportsSchema) {
-//            setDatabaseList();
-//        } else {
-//            setSchema();
-//        }
         setSchema();
     }
 
@@ -71,11 +63,6 @@ public class Connection implements Serializable {
         this.session.reconnect(connectionInfo);
         this.isConnected = session.isConnected();
         this.supportsSchema = session.isSupportsSchema();
-//        if (supportsSchema) {
-//            setDatabaseList();
-//        } else {
-//            setSchema();
-//        }
         setSchema();
     }
 
@@ -99,8 +86,8 @@ public class Connection implements Serializable {
     @Deprecated
     public Database getDatabase(String name) {
         return databaseList.stream()
-            .filter(element -> element.getName().equals(name))
-            .findFirst().orElse(null);
+                .filter(element -> element.getName().equals(name))
+                .findFirst().orElse(null);
     }
 
     @Deprecated
@@ -137,8 +124,30 @@ public class Connection implements Serializable {
         return session.executeQuery(sql, DEFAULT_ROWS_TO_GET);
     }
 
+    /* TODO: Передавать сюда уже заполненный объект таблицы
+        или нет, решай сама
+     */
+    public void newTable(String tableName, String definition) {
+        schema.getTables().add(new Table(tableName, definition));
+    }
+
+    public void createTable(String tableName) {
+        for (Table table : schema.getTables()) {
+            if (table.getName().equals(tableName)) {
+                session.createTable(table);
+                return;
+            }
+        }
+    }
+
+    public void dropTable(String tableName, boolean isExist, boolean cascade) {
+        session.dropTable(tableName, isExist, cascade);
+        schema.getTables().removeIf(table -> table.getName().equals(tableName));
+    }
+
     public DataTable insertData(String tableName, List<String> newValues) {
-        session.insertData(tableName, newValues, schema.getTable(tableName).getDataTable().getColumnNames());
+        Table table = schema.getTable(tableName);
+        session.insertData(tableName, newValues, table.getDataTable().getColumnNames());
         return getDataFromTable(tableName);
     }
 
@@ -280,10 +289,11 @@ public class Connection implements Serializable {
         session.saveChanges();
     }
 
-    public void discardChanges() {
+    public ArrayList<String> discardChanges() {
         rollbackIndexes();
         rollbackViews();
-        session.discardChanges();
+        Cancel cancel = session.discardChanges();
+        return new ArrayList<>(List.of(cancel.getTableName(), cancel.getIndex().toString()));
     }
 
     @Deprecated

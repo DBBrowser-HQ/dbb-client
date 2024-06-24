@@ -1,4 +1,10 @@
-import app.backend.entities.*;
+import app.backend.entities.Connection;
+import app.backend.entities.ConnectionInfo;
+import app.backend.entities.ConnectionStorage;
+import app.backend.entities.DataTable;
+import app.backend.entities.Schema;
+import app.backend.entities.Table;
+import app.backend.entities.View;
 
 import java.util.ArrayList;
 import java.util.HashMap;
