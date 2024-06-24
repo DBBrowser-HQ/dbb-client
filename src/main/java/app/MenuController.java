@@ -154,6 +154,15 @@ public class MenuController extends QObject {
         new CreateTableDialog(this, root.windowIcon());
     }
 
+    public void deleteTable(String table) {
+        StorageController.connectionStorage.getConnection(root.connectionStorageView.getCurrentConnection()).dropTable(table, true, true);
+        try {
+            newCurrentConnectionName(root.connectionStorageView.getCurrentConnection());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void clearWorkArea() {
         root.connectionStorageView.setIconDisabled();
         root.treeViewMenu.setEmptyModel();

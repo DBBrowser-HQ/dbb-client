@@ -27,7 +27,8 @@ public class TreeMenu extends QTreeView {
     private QStandardItemModel dbModel;
     private final QStringListModel emptyModel;
     private final QStringListModel emptyModelOnline;
-    private final QMenu menu = new QMenu();
+    private final QMenu menuSchema = new QMenu();
+    private final QMenu menuTable = new QMenu();
     private final MenuController controller;
 
     public TreeMenu(MenuController controller) {
@@ -50,7 +51,12 @@ public class TreeMenu extends QTreeView {
     }
     void customMenu() {
         if (dbModel.data(currentIndex()).toString().equals("Tables")) {
-            menu.popup(QCursor.pos());
+            menuSchema.popup(QCursor.pos());
+        }
+        else {
+            if (currentIndex().column() == 0 && currentIndex().row() == 0) {
+                menuTable.popup(QCursor.pos());
+            }
         }
     }
 
@@ -59,10 +65,14 @@ public class TreeMenu extends QTreeView {
         this.customContextMenuRequested.connect(this::customMenu);
         QAction addTable = new QAction("Add table");
         addTable.triggered.connect(controller::addTable);
-        menu.addAction(addTable);
+        menuSchema.addAction(addTable);
         QAction deleteTable = new QAction("Delete table");
-        //deleteTable.triggered.connect(controller::deleteTable);
-        menu.addAction(deleteTable);
+        deleteTable.triggered.connect(this::deleteTable);
+        menuTable.addAction(deleteTable);
+    }
+
+    void deleteTable() {
+        controller.deleteTable(dbModel.data(this.currentIndex()).toString());
     }
 
     public void setTreeModel(List<String> tablesList, String conName) throws IOException {
