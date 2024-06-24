@@ -233,7 +233,6 @@ public class Session {
                 for (int col : columnNumbers) {
                     sql += allColumns.get(col) + " = ?, ";
                 }
-                sql = sql.substring(0, sql.length() - 2) + " WHERE " + actualKey + " = ?;";
             }
             case POSTGRESQL -> {
                 int c = 1;
@@ -241,18 +240,17 @@ public class Session {
                     sql += allColumns.get(col) + " = $" + c + ", ";
                     c += 1;
                 }
-                sql = sql.substring(0, sql.length() - 2) + " WHERE " + actualKey + " = $" + c + ";";
             }
             default ->
-                throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
+                    throw new IllegalArgumentException("Unknown connection type: " + connectionInfo.getConnectionType());
         }
-
+        sql = sql.substring(0, sql.length() - 2) + " WHERE " + actualKey + " = " + "\'" + id + "\'" + ";";
+        System.out.println(sql);
         PreparedStatement preparedStatement = getPreparedStatement(sql);
         try {
             for (int i = 0; i < values.size(); i++) {
                 preparedStatement.setString(i + 1, values.get(i));
             }
-            preparedStatement.setString(values.size(), id);
             Savepoint savepoint = connection.setSavepoint();
             savepoints.add(new Cancel(savepoint, tableName, Cancel.CancelType.TABLE, rowNumber));
             preparedStatement.executeUpdate();
