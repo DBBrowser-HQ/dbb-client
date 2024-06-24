@@ -62,7 +62,7 @@ public class TreeMenu extends QTreeView {
         menu.addAction(addTable);
         QAction deleteTable = new QAction("Delete table");
         //deleteTable.triggered.connect(controller::deleteTable);
-        menu.addAction(addTable);
+        menu.addAction(deleteTable);
     }
 
     public void setTreeModel(List<String> tablesList, String conName) throws IOException {

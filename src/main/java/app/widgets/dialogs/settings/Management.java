@@ -34,6 +34,7 @@ public class Management extends MyToolBar {
         this.callback = callback;
         prepareSignals();
         setOrientation(Qt.Orientation.Vertical);
+        addWidget(new QLabel("Your id: " + UserDataRepository.getUserId()));
         addWidget(new QLabel("Your companies:"));
         addWidget(getCompanies());
         QPushButton addCompanyButton = new QPushButton("+");
