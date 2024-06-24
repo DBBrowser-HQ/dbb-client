@@ -50,7 +50,7 @@ public class AddUserDialog extends Setting {
     void approveClicked() {
         if (!userId.toPlainText().equals("")) {
             try {
-                ApiCalls.addUser(Integer.parseInt(userId.toPlainText()), orgId, "admin"/*userRole.getText()*/, mainSignal);
+                ApiCalls.addUser(Integer.parseInt(userId.toPlainText()), orgId, userRole.getText(), mainSignal);
             }
             catch (NumberFormatException e) {
                 new ErrorDialog("Wrong id format");
