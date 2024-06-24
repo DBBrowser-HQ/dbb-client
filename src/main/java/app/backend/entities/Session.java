@@ -249,7 +249,6 @@ public class Session {
         List<Integer> l = new ArrayList<>(columnNumbers);
         l.add(colIndex);
         List<Integer> columnTypes = getColumnTypes(tableName, l);
-
         String sql = "UPDATE " + tableName + " SET ";
 
         switch (connectionInfo.getConnectionType()) {
@@ -268,7 +267,7 @@ public class Session {
             for (int i = 0; i < values.size(); i++) {
                 preparedStatement.setObject(i + 1, values.get(i), columnTypes.get(i));
             }
-            preparedStatement.setObject(values.size() + 1, id, columnTypes.get(colIndex));
+            preparedStatement.setObject(values.size() + 1, id, columnTypes.get(columnTypes.size() - 1));
 
             Savepoint savepoint = connection.setSavepoint();
             savepoints.add(new Cancel(savepoint, tableName, Cancel.CancelType.TABLE, rowNumber));
