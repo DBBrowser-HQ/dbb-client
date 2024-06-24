@@ -62,6 +62,7 @@ public class MenuController extends QObject {
     }
 
     void act1() {
+        ApiCalls.refresh();
         root.label.setText(" DON'T TOUCH ME!!!");
     }
 

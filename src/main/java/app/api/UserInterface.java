@@ -18,7 +18,7 @@ public interface UserInterface {
     Call<ResponseBody> register(@Body LogUpData data);
 
     @POST("auth/refresh")
-    Call<ResponseBody> refresh(@Body RefreshToken token);
+    Call<MyResponse<TokenResponse>> refresh(@Body RefreshToken token);
 
     @POST("auth/logout")
     Call<ResponseBody> logout(@Header("Authorization") String token);

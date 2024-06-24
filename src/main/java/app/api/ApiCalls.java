@@ -67,6 +67,33 @@ public class ApiCalls {
         });
     }
 
+    public static void refresh() {
+
+        var service = getUserService();
+
+        service.refresh(new RefreshToken(UserDataRepository.refreshToken)).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<MyResponse<TokenResponse>> call, Response<MyResponse<TokenResponse>> response) {
+                if(response.code() == 200) {
+                    UserDataRepository.accessToken = response.body().payload.accessToken;
+                    UserDataRepository.refreshToken = response.body().payload.refreshToken;
+                }
+                else {
+                    try(ResponseBody errBody = response.errorBody()) {
+                        new ErrorDialog(errBody.string());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<MyResponse<TokenResponse>> call, Throwable t) {
+                System.out.println(t.toString());
+            }
+        });
+    }
+
     public static void signUp(QObject.Signal1<String> signal1, String login, String password) {
 
         var service = getUserService();
