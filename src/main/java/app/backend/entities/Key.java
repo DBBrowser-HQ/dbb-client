@@ -12,6 +12,11 @@ public class Key {
         this.columns = new ArrayList<>(List.of(column));
     }
 
+    public Key(String name, List<String> columns) {
+        this.name = name;
+        this.columns = columns;
+    }
+
     public void addColumn(String column) {
         columns.add(column);
     }

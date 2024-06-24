@@ -8,12 +8,27 @@ public class ForeignKey {
     private List<String> childColumns;
     private String parentTable;
     private List<String> parentColumns;
+    private String onDeleteAction;
 
     public ForeignKey(String name, String childColumn, String parentTable, String parentColumn) {
         this.name = name;
         this.childColumns = new ArrayList<>(List.of(childColumn));
         this.parentTable = parentTable;
         this.parentColumns = new ArrayList<>(List.of(parentColumn));
+        this.onDeleteAction = null;
+    }
+
+
+    public ForeignKey(String name, ArrayList<String> childColumns, String parentTable, ArrayList<String> parentColumns, String onDelete) {
+        this.name = name;
+        this.childColumns = childColumns;
+        this.parentTable = parentTable;
+        this.parentColumns = parentColumns;
+        this.onDeleteAction = onDelete;
+    }
+
+    public String getOnDeleteAction() {
+        return onDeleteAction;
     }
 
     public void addChildColumn(String columnName) {
@@ -47,6 +62,7 @@ public class ForeignKey {
                 ", childColumns=" + childColumns +
                 ", parentTable='" + parentTable + '\'' +
                 ", parentColumns=" + parentColumns +
+                ", onDeleteAction='" + onDeleteAction + '\'' +
                 '}';
     }
 }
