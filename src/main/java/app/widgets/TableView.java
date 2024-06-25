@@ -1,6 +1,7 @@
 package app.widgets;
 
 import app.MenuController;
+import app.backend.controllers.ConnectionController;
 import app.backend.entities.DataTable;
 import app.backend.entities.Index;
 import io.qt.core.QModelIndex;
@@ -23,8 +24,10 @@ public class TableView extends QTableView {
     private final QStandardItemModel emptyModel;
     private final Signal4<String, Integer, List<Integer>, List<String>> changeDataSignal = new Signal4<>();
     private final Signal2<String, Integer> deleteRowSignal = new Signal2<>();
+    private final MenuController controller;
 
     public TableView(MenuController menuController, boolean isResult) {
+        controller = menuController;
 
         if (!(isResult)) {
             changeDataSignal.connect(menuController, "changeData(String, Integer, List, List)");
@@ -101,8 +104,9 @@ public class TableView extends QTableView {
     void deleteRow() {
         var index = this.currentIndex();
         deleteRowSignal.emit(this.tableName, index.row());
-        dataTable.deleteRow(index.row()-1);
-        myUpdate();
+        //dataTable.deleteRow(index.row()-1);
+        //myUpdate();
+        ConnectionController.getContentInTable(controller.root.connectionStorageView.getCurrentConnection(), tableName);
     }
 
     public void myUpdate() {

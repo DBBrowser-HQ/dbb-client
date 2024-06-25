@@ -25,7 +25,6 @@ public class Main {
         QApplication.shutdown();
 
     }
-
     private static void setConfigs() throws NoSuchFileException {
         try {
             FileReader fr = new FileReader("config.txt");
