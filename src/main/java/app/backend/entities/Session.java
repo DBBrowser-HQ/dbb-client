@@ -437,6 +437,7 @@ public class Session {
             List<Table> tableList = new ArrayList<>();
             Statement statement = getStatement();
             String query;
+            String queryDrop = "DROP FUNCTION pg_get_tabledef(TEXT);";
             switch (connectionInfo.getConnectionType()) {
                 case POSTGRESQL -> {
                     String queryCreateFunction = "CREATE OR REPLACE FUNCTION pg_get_tabledef(tablename text) RETURNS text AS $$\n" +
@@ -475,10 +476,8 @@ public class Session {
                             "    RETURN result;\n" +
                             "END;\n" +
                             "$$ LANGUAGE plpgsql;";
-                    String queryRights = "GRANT ALL PRIVILEGES ON FUNCTION pg_get_tabledef() TO PUBLIC";
                     query = "SELECT table_name as name, pg_get_tabledef(table_name) as sql FROM information_schema.tables WHERE table_schema='public' AND table_type <> 'VIEW';";
                     statement.execute(queryCreateFunction);
-                    statement.execute(queryRights);
                 }
                 case SQLITE -> query = "SELECT name, sql FROM sqlite_master " +
                         "WHERE type == \"table\" AND name NOT IN ('sqlite_sequence', 'sqlite_stat1', 'sqlite_master')";
@@ -488,6 +487,9 @@ public class Session {
             ResultSet resultSet = statement.executeQuery(query);
             while (resultSet.next()) {
                 tableList.add(new Table(resultSet.getString("name"), resultSet.getString("sql")));
+            }
+            if (connectionInfo.getConnectionType() == ConnectionInfo.ConnectionType.POSTGRESQL) {
+                statement.execute(queryDrop);
             }
             statement.close();
             return tableList;
